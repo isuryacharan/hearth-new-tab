@@ -211,6 +211,54 @@
     { keywords: ['help', 'commands', '?'], title: 'Show all commands', icon: () => SVG.help, run: () => { setQuery('?'); return undefined; }, keepOpen: true },
   ];
 
+  /* ---------- search engines & AI chats ---------- */
+
+  // Type a keyword, a space, then your text: "yt lofi beats", "gpt explain closures".
+  const ENGINES = [
+    { name: 'Google', keywords: ['g', 'google'], url: 'https://www.google.com/search?q=%s' },
+    { name: 'DuckDuckGo', keywords: ['ddg', 'duck', 'd'], url: 'https://duckduckgo.com/?q=%s' },
+    { name: 'Bing', keywords: ['b', 'bing'], url: 'https://www.bing.com/search?q=%s' },
+    { name: 'Brave Search', keywords: ['br', 'brave'], url: 'https://search.brave.com/search?q=%s' },
+    { name: 'YouTube', keywords: ['yt', 'youtube'], url: 'https://www.youtube.com/results?search_query=%s' },
+    { name: 'Wikipedia', keywords: ['w', 'wiki', 'wikipedia'], url: 'https://en.wikipedia.org/wiki/Special:Search?search=%s' },
+    { name: 'GitHub', keywords: ['gh', 'github'], url: 'https://github.com/search?q=%s' },
+    { name: 'Reddit', keywords: ['r', 'reddit'], url: 'https://www.reddit.com/search/?q=%s' },
+    { name: 'Stack Overflow', keywords: ['so', 'stackoverflow'], url: 'https://stackoverflow.com/search?q=%s' },
+    { name: 'MDN', keywords: ['mdn'], url: 'https://developer.mozilla.org/search?q=%s' },
+    { name: 'npm', keywords: ['npm'], url: 'https://www.npmjs.com/search?q=%s' },
+    { name: 'Google Maps', keywords: ['maps', 'map'], url: 'https://www.google.com/maps/search/%s' },
+    // AI chats: the prompt goes in the link; whether it's sent automatically is up to each site.
+    { name: 'ChatGPT', keywords: ['gpt', 'chatgpt', 'chat'], url: 'https://chatgpt.com/?q=%s', ai: true },
+    { name: 'Claude', keywords: ['claude', 'cl'], url: 'https://claude.ai/new?q=%s', ai: true },
+  ];
+  const AI_ENGINES = ENGINES.filter(e => e.ai);
+  const engineHome = e => new URL(e.url.replace('%s', '')).origin;
+
+  function engineIcon(e) {
+    // the site's own favicon via Chrome's favicon cache (letter fallback outside the extension)
+    return window.BookmarkIndex ? BookmarkIndex.icon({ url: engineHome(e), title: e.name }) : null;
+  }
+
+  function engineItem(e, text, section = '') {
+    return {
+      section, iconNode: engineIcon(e), icon: SVG.search,
+      title: e.ai ? `Ask ${e.name}: ${text}` : `Search ${e.name} for “${text}”`,
+      subtitle: `${e.keywords[0]} · ${new URL(engineHome(e)).hostname.replace(/^www\./, '')}`,
+      action: e.ai ? 'Ask' : 'Search',
+      url: e.url.replace('%s', encodeURIComponent(text)),
+    };
+  }
+
+  // Only a keyword typed: Tab / Enter fill it in so you can type the query.
+  function engineCompleteItem(e, section = '') {
+    return {
+      section, iconNode: engineIcon(e), icon: SVG.search,
+      title: e.ai ? `Ask ${e.name}…` : `Search ${e.name}…`, subtitle: `${e.keywords[0]} <your text>`,
+      action: 'Complete', complete: `${e.keywords[0]} `, keepOpen: true,
+      run: () => { setQuery(`${e.keywords[0]} `); },
+    };
+  }
+
   /* ---------- building results ---------- */
 
   /* Both return a promise that rejects if Chrome refuses the navigation. */
@@ -248,10 +296,21 @@
   function build(raw) {
     const q = raw.trim().toLowerCase();
     if (!q) return [];
-    if (q === '?') return COMMANDS.filter(c => c.keywords[0] !== 'help').map(c => commandItem(c));
+    if (q === '?') {
+      return [
+        ...COMMANDS.filter(c => c.keywords[0] !== 'help').map(c => commandItem(c)),
+        ...ENGINES.map(e => engineCompleteItem(e, 'Search engines & AI')),
+      ];
+    }
 
     const out = [];
     const first = q.split(/\s+/)[0];
+    const afterFirst = raw.trim().slice(first.length).trim();
+
+    // 0. a search engine / AI chat keyword: "yt lofi", "gpt explain closures"
+    const engine = ENGINES.find(e => e.keywords.includes(first));
+    if (engine && afterFirst) out.push(engineItem(engine, afterFirst));
+    else if (engine && !afterFirst) out.push(engineCompleteItem(engine));
     const rest = raw.trim().slice(first.length).trim();
 
     // 1. a command with its text, e.g. "todo buy milk"
@@ -305,9 +364,11 @@
     const bookmarksFirst = (marks[0]?.s || 0) > (commands[0]?.s || 0);
     out.push(...(bookmarksFirst ? [...markItems, ...commandItems] : [...commandItems, ...markItems]));
 
-    // 6. search the web — always available, even when a command matched ("event horizon")
+    // 6. search the web with the default engine, or ask an AI chat — always offered, even when a
+    //    command or keyword matched ("event horizon", "g string")
     out.push({ section: 'Web', icon: SVG.search, title: `Search the web for “${raw.trim()}”`, subtitle: 'Default search engine', action: 'Search',
       search: raw.trim() });
+    if (!engine) for (const e of AI_ENGINES) out.push(engineItem(e, raw.trim(), 'Web'));
     return out;
   }
 

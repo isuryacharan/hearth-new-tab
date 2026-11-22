@@ -32,8 +32,25 @@ Chrome normally keeps the cursor in the address bar on new tabs, so the page rel
 | `bookmarks` | goes to the bookmarks page |
 | `12*4.5`, `=2^10` | calculates; `Enter` copies the result |
 | `github.com`, `localhost:3000` | opens the address |
-| anything | matching bookmarks and folders, plus a web search with your default search engine |
+| `yt lofi beats`, `g …`, `ddg …` | searches a specific engine (keywords below) |
+| `gpt explain closures`, `claude …` | opens ChatGPT / Claude with your text as the prompt |
+| anything | matching bookmarks and folders, then search the web (default engine), Ask ChatGPT, Ask Claude |
 | `?` | lists every command |
+
+**Search engines & AI** — type the keyword, a space, then your text (the keyword alone + `Tab` fills it in):
+
+| Engine | Keyword | | Engine | Keyword |
+|---|---|---|---|---|
+| Google | `g` | | GitHub | `gh` |
+| DuckDuckGo | `ddg`, `d` | | Reddit | `r` |
+| Bing | `b` | | Stack Overflow | `so` |
+| Brave Search | `br` | | MDN | `mdn` |
+| YouTube | `yt` | | npm | `npm` |
+| Wikipedia | `w`, `wiki` | | Google Maps | `maps` |
+| **ChatGPT** | `gpt`, `chat` | | **Claude** | `claude`, `cl` |
+
+ChatGPT and Claude receive the prompt through the link (`chatgpt.com/?q=…`, `claude.ai/new?q=…`); whether it is
+sent automatically or just filled in is decided by each site. Engines are listed in `ENGINES` in `palette.js`.
 
 `↑`/`↓` choose · `Enter` run · `Ctrl+Enter` open in a new tab · `Tab` complete a command · `Esc` clears, then leaves.
 `↓` in the empty box goes to the bookmarks page.
