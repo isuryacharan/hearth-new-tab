@@ -73,7 +73,7 @@ function renderFolder() {
   const children = folder.children || [];
   const folders = children.filter(c => !c.url);
   const links = children.filter(c => c.url);
-  const tiles = [...folders.map(f => folderTile(f)), ...links.map(l => linkTile(l))];
+  const tiles = [...folders.map(f => folderTile(f)), ...links.map(l => pinnableTile(l))];
   els.grid.replaceChildren(...tiles);
   els.empty.hidden = tiles.length > 0;
   els.empty.textContent = 'This folder is empty.';
@@ -131,6 +131,40 @@ function folderTile(folder) {
   tile.append(icon, label(folder.title || 'Untitled'), sub(`${count} item${count === 1 ? '' : 's'}`));
   return tile;
 }
+
+/* A bookmark tile with a ☆ in its corner to pin it to (or unpin it from) the quick links row. */
+function pinnableTile(bm) {
+  const wrap = document.createElement('div');
+  wrap.className = 'tile-wrap';
+  const pin = document.createElement('button');
+  pin.type = 'button';
+  pin.className = 'tile-pin';
+  pin.dataset.bookmarkId = bm.id;
+  pin.addEventListener('click', async () => {
+    const pinned = await window.QuickLinks?.toggleBookmark({ id: bm.id, url: bm.url, title: bm.title });
+    setPinState(pin, bm, pinned);
+  });
+  setPinState(pin, bm, window.QuickLinks?.isPinned(bm));
+  wrap.append(linkTile(bm), pin);
+  return wrap;
+}
+
+function setPinState(pin, bm, pinned) {
+  pin.classList.toggle('pinned', !!pinned);
+  pin.textContent = pinned ? '★' : '☆';
+  const name = bm.title || hostOf(bm.url);
+  pin.title = pinned ? 'Remove from quick links' : 'Add to quick links';
+  pin.setAttribute('aria-label', pinned ? `Remove “${name}” from quick links` : `Add “${name}” to quick links`);
+  pin.setAttribute('aria-pressed', String(!!pinned));
+}
+
+// Quick links changed (here or in another tab): refresh the ☆ / ★ on visible tiles.
+window.addEventListener('quicklinks-change', () => {
+  for (const pin of els.grid.querySelectorAll('.tile-pin')) {
+    const entry = allLinks.find(l => l.node.id === pin.dataset.bookmarkId);
+    if (entry) setPinState(pin, entry.node, window.QuickLinks?.isPinned(entry.node));
+  }
+});
 
 function linkTile(bm, subtitle) {
   const a = document.createElement('a');
@@ -215,11 +249,12 @@ function tick() {
 async function refresh() {
   await loadTree();
   render();
+  window.dispatchEvent(new Event('bookmarks-change')); // e.g. quick links show bookmarks' current names
 }
 
 window.addEventListener('hashchange', () => {
   renderFolder();
-  els.bookmarksPage.scrollTop = 0;
+  document.getElementById('grid-scroll').scrollTop = 0; // a new folder starts at the top
   if (currentFolderId() !== ROOT) Pages.go('bookmarks'); // e.g. browser Back into a folder
 });
 els.hint.addEventListener('click', () => Pages.go('bookmarks'));

@@ -102,9 +102,23 @@
     <section id="page-bookmarks" class="layer bookmarks-layer" aria-label="Bookmarks">
       <div class="bookmarks">
         <div class="bookmarks-main">
+          <section class="quick" aria-labelledby="quick-title">
+            <h2 id="quick-title" class="quick-title">Quick links</h2>
+            <div id="quick-list" class="quick-list"></div>
+            <form id="quick-form" class="quick-form" hidden>
+              <input id="quick-url" type="text" inputmode="url" placeholder="example.com or https://…" autocomplete="off" spellcheck="false" aria-label="Link address" required>
+              <input id="quick-name" type="text" placeholder="Name (optional)" autocomplete="off" aria-label="Link name">
+              <button type="submit" class="chip">Add</button>
+              <button id="quick-cancel" type="button" class="link-btn">Cancel</button>
+              <span id="quick-error" class="quick-error" role="alert"></span>
+            </form>
+          </section>
           <nav id="crumbs" class="crumbs" aria-label="Folder path"></nav>
-          <section id="grid" class="grid" aria-live="polite"></section>
-          <p id="empty" class="empty" hidden></p>
+          <!-- only this area scrolls; quick links and the folder path stay put above it -->
+          <div id="grid-scroll" class="grid-scroll">
+            <section id="grid" class="grid" aria-live="polite"></section>
+            <p id="empty" class="empty" hidden></p>
+          </div>
         </div>
 
         <aside class="panel later-col" aria-labelledby="later-title" style="--i: 3">
@@ -279,6 +293,7 @@
   <script src="tone.js"></script>
   <script src="background.js"></script>
   <script src="readlater.js"></script>
+  <script src="quicklinks.js"></script>
   <script src="palette.js"></script>
   <script src="quote.js"></script>
 </body>

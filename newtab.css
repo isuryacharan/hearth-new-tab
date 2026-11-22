@@ -72,7 +72,10 @@ html, body { height: 100%; overflow: hidden; }
 .stage.moving .layer { will-change: transform; }
 .stage.moving .bookmarks-layer .tile,
 .stage.moving .bookmarks-layer .crumbs,
-.stage.moving .bookmarks-layer .later-col { will-change: translate, scale, opacity; }
+.stage.moving .bookmarks-layer .later-col,
+.stage.moving .bookmarks-layer .quick-title,
+.stage.moving .bookmarks-layer .quick-item,
+.stage.moving .bookmarks-layer .quick-add { will-change: translate, scale, opacity; }
 
 /*
  * Home recedes: drifts up, shrinks a touch, blurs and fades — like stepping back from it.
@@ -297,7 +300,10 @@ body.has-bg .palette-footer { color: rgba(255, 255, 255, 0.85); text-shadow: 0 1
 .bookmarks-layer .empty { opacity: clamp(0, calc(var(--p) * 1.9 - 0.45), 1); }
 .bookmarks-layer .crumbs,
 .bookmarks-layer .tile,
-.bookmarks-layer .later-col {
+.bookmarks-layer .later-col,
+.bookmarks-layer .quick-title,
+.bookmarks-layer .quick-item,
+.bookmarks-layer .quick-add {
   --tp: clamp(0, calc(var(--p) * 1.9 - var(--i, 0) * 0.05 - 0.4), 1.04);
   opacity: clamp(0, var(--tp), 1);
   /* individual properties, so the hover lift (transform) still works on top */
@@ -508,28 +514,77 @@ body.has-bg .quote { color: rgba(255, 255, 255, 0.85); text-shadow: 0 1px 6px rg
   .page-hint svg { animation: none; }
 }
 
-/* Bookmarks page: grid on the left, read later beside it (below it on narrow windows). */
+/*
+ * Custom scrollbars (everywhere: grid, read later, drawer, palette, notes): a thin rounded thumb
+ * on a clear track that only shows while the pointer is over the scrolling area.
+ * (The standard scrollbar-width / scrollbar-color are deliberately not set: in Chrome they would
+ * replace these ::-webkit-scrollbar styles with a plain look.)
+ */
+:root { --thumb: color-mix(in srgb, var(--muted) 45%, transparent); --thumb-hover: color-mix(in srgb, var(--muted) 75%, transparent); }
+body.has-bg { --thumb: rgba(255, 255, 255, 0.35); --thumb-hover: rgba(255, 255, 255, 0.6); }
+::-webkit-scrollbar { width: 12px; height: 12px; }
+::-webkit-scrollbar-track, ::-webkit-scrollbar-corner { background: transparent; }
+::-webkit-scrollbar-thumb {
+  min-height: 40px;
+  border: 4px solid transparent; /* inset from the edge: looks 4 px wide, easy to grab */
+  border-radius: 999px;
+  background: transparent padding-box;
+}
+:hover::-webkit-scrollbar-thumb, :focus-within::-webkit-scrollbar-thumb { background-color: var(--thumb); }
+::-webkit-scrollbar-thumb:hover, ::-webkit-scrollbar-thumb:active { background-color: var(--thumb-hover); border-width: 3px; }
+::-webkit-scrollbar-button { display: none; height: 0; }
+
+/*
+ * The bookmarks page is still there (slid down, tiles faded) while you're on the home page, and
+ * a scrollbar thumb doesn't fade with the tiles — hovering where the grid sits would show it.
+ * So: at rest on home the bookmarks page is fully hidden, and during a page change its scrollbars
+ * stay hidden too.
+ */
+.stage[data-page="home"]:not(.moving) .bookmarks-layer { visibility: hidden; }
+.stage.moving .bookmarks-layer ::-webkit-scrollbar-thumb,
+.stage[data-page="home"] .bookmarks-layer ::-webkit-scrollbar-thumb { background-color: transparent !important; }
+
+/*
+ * Bookmarks page: fills the window and never scrolls as a whole. Quick links and the folder path
+ * stay at the top; only the grid scrolls (#grid-scroll). Read later sits beside it with its own
+ * scrolling when long (below the grid on narrow windows).
+ */
+.bookmarks-layer { overflow: hidden; }
 .bookmarks {
+  height: 100%;
   max-width: 1320px;
   margin: 0 auto;
-  padding: 72px 24px 64px; /* clears the dock */
+  padding: 72px 24px 20px; /* clears the dock */
   display: grid;
   grid-template-columns: minmax(0, 1fr) 320px;
+  grid-template-rows: minmax(0, 1fr);
   gap: 32px;
-  align-items: start;
 }
-.bookmarks-main { min-width: 0; }
+.bookmarks-main {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.bookmarks-main > .quick, .bookmarks-main > .crumbs { flex: none; }
+.grid-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  /* room for tiles' hover lift and shadow, without shifting the grid's alignment */
+  margin: -4px -8px 0;
+  padding: 4px 8px 24px;
+}
 .later-col {
-  position: sticky;
-  top: 72px;              /* stays in view while a long grid scrolls */
-  margin-top: 44px;       /* lines up with the grid, below the folder path */
-  max-height: calc(100vh - 116px);
+  align-self: start;
+  max-height: 100%;
   overflow-y: auto;
   overscroll-behavior: contain;
 }
 @media (max-width: 900px) {
-  .bookmarks { grid-template-columns: 1fr; gap: 20px; }
-  .later-col { position: static; margin-top: 0; max-height: none; }
+  .bookmarks { grid-template-columns: 1fr; grid-template-rows: minmax(0, 1fr) auto; gap: 16px; }
+  .later-col { max-height: 34vh; }
 }
 
 .clock { text-align: center; }
@@ -1271,7 +1326,9 @@ body.has-bg .page-hint { color: #fff; text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
  */
 body.has-bg .tile,
 body.has-bg .panel,
-body.has-bg .search {
+body.has-bg .search,
+body.has-bg .quick-tile,
+body.has-bg .quick-add {
   background: color-mix(in srgb, var(--tile) 82%, transparent);
   backdrop-filter: blur(14px);
 }
@@ -1280,8 +1337,146 @@ body.has-bg .tile:hover { background: color-mix(in srgb, var(--tile-hover) 92%, 
 body.has-bg.page-moving .tile,
 body.has-bg.page-moving .panel,
 body.has-bg.page-moving .search,
+body.has-bg.page-moving .quick-tile,
+body.has-bg.page-moving .quick-add,
 body.has-bg.page-moving .dock,
 body.has-bg.page-moving .drawer { backdrop-filter: none; }
+
+/* ---------- quick links (top of the bookmarks page) ---------- */
+
+.quick { margin-bottom: 18px; }
+.quick-title {
+  --i: 0.2;
+  margin: 0 0 8px;
+  padding-left: 2px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+body.has-bg .quick-title { color: rgba(255, 255, 255, 0.85); text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6); }
+.quick-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.quick-item { position: relative; display: flex; }
+.quick-tile, .quick-add {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 14px 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--tile);
+  box-shadow: var(--shadow);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+}
+.quick-tile { max-width: 220px; }
+.quick-tile:hover, .quick-tile:focus-visible, .quick-add:hover, .quick-add:focus-visible {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-hover);
+  background: var(--tile-hover);
+  outline: none;
+}
+.quick-tile:focus-visible, .quick-add:focus-visible { border-color: var(--accent); }
+.quick-icon { width: 24px; height: 24px; border-radius: 7px; flex: none; }
+.quick-icon img { width: 16px; height: 16px; }
+.quick-icon.letter { font-size: 12px; }
+.quick-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.quick-add { padding: 0 14px; color: var(--muted); border-style: dashed; box-shadow: none; }
+.quick-add span { font-size: 16px; line-height: 1; }
+.quick-add[hidden] { display: none; }
+
+.quick-remove {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--tile);
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  box-shadow: var(--shadow);
+  transition: opacity 0.12s;
+}
+.quick-item:hover .quick-remove, .quick-remove:focus-visible { opacity: 1; }
+.quick-remove:hover { color: var(--text); }
+.quick-remove:focus-visible { outline: 2px solid var(--accent); }
+
+.quick-item.dragging { opacity: 0.4; }
+.quick-item.drop-before::before, .quick-item.drop-after::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+.quick-item.drop-before::before { left: -5px; }
+.quick-item.drop-after::after { right: -5px; }
+
+.quick-form:not([hidden]) { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
+.quick-form input {
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--tile);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  outline: none;
+}
+.quick-form input:focus { border-color: var(--accent); }
+#quick-url { flex: 2 1 200px; }
+#quick-name { flex: 1 1 140px; }
+.quick-form .link-btn { margin-top: 0; }
+.quick-error { flex-basis: 100%; font-size: 12px; color: #e5484d; }
+.quick-error:empty { display: none; }
+body.has-bg .quick-error { text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6); }
+
+/* ☆ on bookmark tiles: pin to quick links (shown on hover; ★ stays visible once pinned) */
+.tile-wrap { position: relative; display: flex; min-width: 0; }
+.tile-wrap > .tile { flex: 1; }
+.tile-pin {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s, color 0.12s, background 0.12s;
+}
+.tile-wrap:hover .tile-pin, .tile-pin:focus-visible { opacity: 1; }
+.tile-pin:hover { background: var(--border); color: var(--text); }
+.tile-pin.pinned { color: #f5a524; opacity: clamp(0, calc(var(--p) * 1.9 - 0.9), 1); } /* appears as the page settles */
+.tile-wrap:hover .tile-pin.pinned { opacity: 1; }
+.tile-pin:focus-visible { outline: 2px solid var(--accent); }
 
 /* ---------- read later ---------- */
 

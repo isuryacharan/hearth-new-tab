@@ -11,6 +11,8 @@ The new tab has two vertical pages:
    appears on hover, or toggle it with the `quote` command; while it's off, nothing is fetched.
 2. **Bookmarks**: the full grid with folders. Scroll down, click "Bookmarks ⌄", or press `↓` / `PageDown` /
    `Space` to get there; scroll up from the top, press `↑` / `PageUp`, or `/` to return. Reopening a folder lands here.
+   The page itself never scrolls: quick links and the folder path stay put and only the grid scrolls (Read later
+   has its own scrolling when long). Scrollbars are thin and only appear while the pointer is over a scrolling area.
 
 The transition is a custom spring (`pages.js`, Apple-style response 0.55 s / damping 0.825) rather than browser
 scrolling. A trackpad swipe moves the page with your fingers and hands its speed to the spring when you let go;
@@ -107,6 +109,9 @@ instead of over them.
 - **Calendar**: month view with today highlighted; click a day (or use arrow keys / PageUp / PageDown) to see and
   add events with an optional time. Days with events get a dot. Click the month name to jump back to today.
   Events are stored locally.
+- **Quick links**: a compact row at the top of the bookmarks page. Pin a bookmark with the ☆ on its tile (★ when
+  pinned; it keeps the bookmark's current name), or add your own link with "+ Add" (`example.com` is fine, the
+  name is optional). Remove with ×, reorder by dragging. Links you added also show up in palette search.
 - **Read later**: right-click any page and choose *Add page to Read Later*, or right-click a link and choose
   *Add link to Read Later* (saves it without opening it). A silent notification confirms; duplicates and non-web
   pages are skipped. The list sits beside the bookmarks on the second page (below them on narrow windows); the

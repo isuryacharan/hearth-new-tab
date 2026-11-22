@@ -17,6 +17,7 @@
   const stage = document.getElementById('stage');
   const home = document.getElementById('page-home');
   const marks = document.getElementById('page-bookmarks');
+  const gridScroll = document.getElementById('grid-scroll'); // the bookmarks page scrolls only here
   const drawer = document.getElementById('drawer');
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 
@@ -223,8 +224,8 @@
         if (home.classList.contains('searching')) return;
         if (delta < 0) return; // nothing above home
       } else {
-        // On the bookmarks page, scroll the grid unless we're at its top pulling down.
-        if (marks.scrollTop > 0 || delta > 0) return;
+        // On the bookmarks page, scroll the grid unless it's at its top and we're pulling down.
+        if (gridScroll.scrollTop > 0 || delta > 0) return;
         // ...and let an inner list (e.g. a long read later list) scroll up first.
         const inner = e.composedPath().find(el => el instanceof Element && el !== marks && marks.contains(el)
           && el.scrollHeight > el.clientHeight && el.scrollTop > 0);
@@ -262,7 +263,7 @@
     const down = ['PageDown', 'ArrowDown', ' '].includes(e.key) && !e.shiftKey;
     const up = ['PageUp', 'ArrowUp'].includes(e.key) || (e.key === ' ' && e.shiftKey);
     if (state.target === 0 && down) { e.preventDefault(); go('bookmarks'); }
-    else if (state.target === 1 && up && marks.scrollTop <= 0) { e.preventDefault(); go('home'); }
+    else if (state.target === 1 && up && gridScroll.scrollTop <= 0) { e.preventDefault(); go('home'); }
   });
 
   /* ---------- API ---------- */
@@ -279,7 +280,7 @@
       return;
     }
     if (state.target === target && state.mode === 'idle') return;
-    if (target === 1) marks.scrollTop = 0;
+    if (target === 1) gridScroll.scrollTop = 0;
     animateTo(target, state.mode === 'spring' ? state.v : 0);
   }
 

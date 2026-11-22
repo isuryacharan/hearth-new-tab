@@ -380,11 +380,29 @@
       marks.sort((a, b) => b.s - a.s).splice(MAX_BOOKMARKS);
     }
 
-    // whichever section matches better comes first
-    const commandItems = commands.map(({ c }) => commandItem(c));
-    const markItems = marks.map(m => m.item);
-    const bookmarksFirst = (marks[0]?.s || 0) > (commands[0]?.s || 0);
-    out.push(...(bookmarksFirst ? [...markItems, ...commandItems] : [...commandItems, ...markItems]));
+    // quick links you added yourself (pinned bookmarks already show up as bookmarks)
+    const quick = !window.QuickLinks ? [] : QuickLinks.all()
+      .filter(l => !l.bookmarkId)
+      .map(l => {
+        let host = '';
+        try { host = new URL(l.url).hostname.replace(/^www\./, ''); } catch { /* keep empty */ }
+        return { s: Math.max(score(l.title, q), score(host, q) * 0.85), item: {
+          section: 'Quick links', iconNode: window.BookmarkIndex?.icon({ url: l.url, title: l.title }),
+          title: l.title, subtitle: host, action: 'Open', url: l.url } };
+      })
+      .filter(x => x.s > 0)
+      .sort((a, b) => b.s - a.s)
+      .slice(0, 5);
+
+    // whichever section has the best match comes first (ties: commands, then bookmarks, then quick links)
+    [
+      { s: commands[0]?.s || 0, items: commands.map(({ c }) => commandItem(c)) },
+      { s: marks[0]?.s || 0, items: marks.map(m => m.item) },
+      { s: quick[0]?.s || 0, items: quick.map(x => x.item) },
+    ]
+      .map((group, order) => ({ ...group, order }))
+      .sort((a, b) => b.s - a.s || a.order - b.order)
+      .forEach(group => out.push(...group.items));
 
     // saved for later
     if (window.ReadLater) {
