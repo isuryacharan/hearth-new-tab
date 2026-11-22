@@ -33,6 +33,7 @@ Chrome normally keeps the cursor in the address bar on new tabs, so the page rel
 | `focus`, `break`, `long break`, `pause`, `reset`, `skip` | controls the pomodoro timer |
 | `weather`, `city`, `units`, `calendar`, `todos`, `notes`, `background` | opens that widget (or changes the city / °C–°F) |
 | `bookmarks` | goes to the bookmarks page |
+| `later` | opens the read later list (saved pages also show up in search results) |
 | `quote` | shows / hides the daily quote |
 | `12*4.5`, `=2^10` | calculates; `Enter` copies the result |
 | `github.com`, `localhost:3000` | opens the address |
@@ -97,6 +98,11 @@ instead of over them.
 - **Calendar**: month view with today highlighted; click a day (or use arrow keys / PageUp / PageDown) to see and
   add events with an optional time. Days with events get a dot. Click the month name to jump back to today.
   Events are stored locally.
+- **Read later**: right-click any page and choose *Add page to Read Later*, or right-click a link and choose
+  *Add link to Read Later* (saves it without opening it). A silent notification confirms; duplicates and non-web
+  pages are skipped. The list sits beside the bookmarks on the second page (below them on narrow windows); the
+  `R` key and the `later` command jump there. Click to open (`Ctrl`-click: new tab), ✓ marks as
+  read and removes it. Uses the `contextMenus` and `activeTab` permissions (no install warnings).
 - **Custom background**: open the Background chip to upload an image or video (up to 500 MB, kept in
   the extension's IndexedDB) or paste an image/video URL. Videos play muted on a loop and pause in background tabs.
   A dim slider keeps text readable; "Reset to default" removes it.

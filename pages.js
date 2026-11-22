@@ -225,6 +225,10 @@
       } else {
         // On the bookmarks page, scroll the grid unless we're at its top pulling down.
         if (marks.scrollTop > 0 || delta > 0) return;
+        // ...and let an inner list (e.g. a long read later list) scroll up first.
+        const inner = e.composedPath().find(el => el instanceof Element && el !== marks && marks.contains(el)
+          && el.scrollHeight > el.clientHeight && el.scrollTop > 0);
+        if (inner) return;
       }
       // start a drag
       cancelAnimationFrame(state.raf);

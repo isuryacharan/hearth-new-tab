@@ -37,6 +37,7 @@
     folder: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8l-2-2z"/></svg>',
     grid: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h7v7H4zm9 0h7v7h-7zM4 13h7v7H4zm9 0h7v7h-7z"/></svg>',
     play: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>',
+    later: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z"/></svg>',
     quote: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 17h3l2-4V7H5v6h3zm8 0h3l2-4V7h-6v6h3z"/></svg>',
     help: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 17h-2v-2h2zm2.1-7.8-.9.9c-.7.7-1.2 1.3-1.2 2.9h-2v-.5c0-1.1.5-2.1 1.2-2.8l1.2-1.3a2 2 0 1 0-3.4-1.4H8a4 4 0 1 1 7.1 2.2z"/></svg>',
   };
@@ -207,6 +208,7 @@
     { keywords: ['todos', 'tasks', 'to-do list'], title: 'Open to-do list', icon: () => dockIcon('todo'), run: openWidget('todo') },
     { keywords: ['notes'], title: 'Open notes', icon: () => dockIcon('notes'), run: openWidget('notes') },
     { keywords: ['background', 'wallpaper', 'bg'], title: 'Change background', icon: () => dockIcon('background'), run: openWidget('background') },
+    { keywords: ['later', 'read later', 'reading list', 'saved'], title: 'Show read later list', icon: () => SVG.later, run: () => { ReadLater.show(); } },
     {
       keywords: ['quote', 'daily quote', 'quotes'], icon: () => SVG.quote,
       get title() { return window.Quote?.enabled() === false ? 'Show daily quote' : 'Hide daily quote'; },
@@ -373,6 +375,23 @@
     const markItems = marks.map(m => m.item);
     const bookmarksFirst = (marks[0]?.s || 0) > (commands[0]?.s || 0);
     out.push(...(bookmarksFirst ? [...markItems, ...commandItems] : [...commandItems, ...markItems]));
+
+    // saved for later
+    if (window.ReadLater) {
+      ReadLater.items()
+        .map(item => {
+          let host = '';
+          try { host = new URL(item.url).hostname.replace(/^www\./, ''); } catch { /* keep empty */ }
+          return { item, host, s: Math.max(score(item.title, q), score(host, q) * 0.85) };
+        })
+        .filter(x => x.s > 0)
+        .sort((a, b) => b.s - a.s)
+        .slice(0, 5)
+        .forEach(({ item, host }) => out.push({
+          section: 'Read later', iconNode: window.BookmarkIndex?.icon({ url: item.url, title: item.title }),
+          title: item.title, subtitle: host, action: 'Open', url: item.url,
+        }));
+    }
 
     // 6. search the web with the default engine, or ask an AI chat — always offered, even when a
     //    command or keyword matched ("event horizon", "g string")

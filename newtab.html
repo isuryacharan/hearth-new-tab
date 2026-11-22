@@ -100,9 +100,20 @@
     <!-- Page 2: the full bookmark grid with folders -->
     <section id="page-bookmarks" class="layer bookmarks-layer" aria-label="Bookmarks">
       <div class="bookmarks">
-        <nav id="crumbs" class="crumbs" aria-label="Folder path"></nav>
-        <section id="grid" class="grid" aria-live="polite"></section>
-        <p id="empty" class="empty" hidden></p>
+        <div class="bookmarks-main">
+          <nav id="crumbs" class="crumbs" aria-label="Folder path"></nav>
+          <section id="grid" class="grid" aria-live="polite"></section>
+          <p id="empty" class="empty" hidden></p>
+        </div>
+
+        <aside class="panel later-col" aria-labelledby="later-title" style="--i: 3">
+          <div class="panel-head">
+            <h2 id="later-title">Read later</h2>
+            <span id="later-count" class="muted"></span>
+          </div>
+          <ul id="later-list" class="later-list"></ul>
+          <p id="later-empty" class="later-empty muted">Right-click any page or link and choose <strong>Add to Read Later</strong>. It shows up here.</p>
+        </aside>
       </div>
     </section>
   </main>
@@ -223,6 +234,7 @@
       <textarea id="notes" class="notes" placeholder="Jot something down…" spellcheck="true"></textarea>
     </section>
 
+
     <section class="panel bg-panel" data-panel="background" data-title="Background" aria-labelledby="bg-title" hidden>
       <div class="panel-head">
         <h2 id="bg-title">Background</h2>
@@ -259,6 +271,7 @@
   <script src="pomodoro-core.js"></script>
   <script src="pomodoro.js"></script>
   <script src="background.js"></script>
+  <script src="readlater.js"></script>
   <script src="palette.js"></script>
   <script src="quote.js"></script>
 </body>

@@ -64,13 +64,15 @@ html, body { height: 100%; overflow: hidden; }
 .layer {
   position: absolute;
   inset: 0;
+  overflow-x: hidden; /* pages only ever scroll vertically */
   overflow-y: auto;
   overscroll-behavior: contain;
 }
 /* While moving, each animated piece gets its own GPU layer so frames are composited, not repainted. */
 .stage.moving .layer { will-change: transform; }
 .stage.moving .bookmarks-layer .tile,
-.stage.moving .bookmarks-layer .crumbs { will-change: translate, scale, opacity; }
+.stage.moving .bookmarks-layer .crumbs,
+.stage.moving .bookmarks-layer .later-col { will-change: translate, scale, opacity; }
 
 /*
  * Home recedes: drifts up, shrinks a touch, blurs and fades — like stepping back from it.
@@ -294,7 +296,8 @@ body.has-bg .palette-footer { color: rgba(255, 255, 255, 0.85); text-shadow: 0 1
 }
 .bookmarks-layer .empty { opacity: clamp(0, calc(var(--p) * 1.9 - 0.45), 1); }
 .bookmarks-layer .crumbs,
-.bookmarks-layer .tile {
+.bookmarks-layer .tile,
+.bookmarks-layer .later-col {
   --tp: clamp(0, calc(var(--p) * 1.9 - var(--i, 0) * 0.05 - 0.4), 1.04);
   opacity: clamp(0, var(--tp), 1);
   /* individual properties, so the hover lift (transform) still works on top */
@@ -373,6 +376,7 @@ body:not(.has-bg) .bg-depth { display: none; }
   opacity: 0;
   transition: opacity 0.15s, background 0.15s;
 }
+@media (max-width: 640px) { .quote-hide { right: 0; top: -26px; } } /* stay inside narrow windows */
 .quote:hover .quote-hide, .quote-hide:focus-visible { opacity: 1; }
 .quote-hide:hover { background: var(--border); }
 .quote-hide:focus-visible { outline: 2px solid var(--accent); }
@@ -411,10 +415,28 @@ body.has-bg .quote { color: rgba(255, 255, 255, 0.85); text-shadow: 0 1px 6px rg
   .page-hint svg { animation: none; }
 }
 
+/* Bookmarks page: grid on the left, read later beside it (below it on narrow windows). */
 .bookmarks {
-  max-width: 1040px;
+  max-width: 1320px;
   margin: 0 auto;
   padding: 72px 24px 64px; /* clears the dock */
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 32px;
+  align-items: start;
+}
+.bookmarks-main { min-width: 0; }
+.later-col {
+  position: sticky;
+  top: 72px;              /* stays in view while a long grid scrolls */
+  margin-top: 44px;       /* lines up with the grid, below the folder path */
+  max-height: calc(100vh - 116px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+@media (max-width: 900px) {
+  .bookmarks { grid-template-columns: 1fr; gap: 20px; }
+  .later-col { position: static; margin-top: 0; max-height: none; }
 }
 
 .clock { text-align: center; }
@@ -1100,6 +1122,55 @@ body.has-bg.page-moving .panel,
 body.has-bg.page-moving .search,
 body.has-bg.page-moving .dock,
 body.has-bg.page-moving .drawer { backdrop-filter: none; }
+
+/* ---------- read later ---------- */
+
+.later-list { list-style: none; margin: 0; padding: 0; }
+.later-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 10px;
+}
+.later-item:hover, .later-item:focus-within { background: var(--bg); }
+.later-link {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px;
+  color: var(--text);
+  text-decoration: none;
+  border-radius: 10px;
+}
+.later-link:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.later-icon { width: 32px; height: 32px; border-radius: 8px; flex: none; }
+.later-icon img { width: 18px; height: 18px; }
+.later-icon.letter { font-size: 14px; }
+.later-text { min-width: 0; display: flex; flex-direction: column; }
+.later-title, .later-meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.later-title { font-size: 14px; }
+.later-meta { font-size: 12px; color: var(--muted); }
+.later-done {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  margin-right: 6px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 15px;
+  cursor: pointer;
+  opacity: 0;
+}
+.later-item:hover .later-done, .later-item:focus-within .later-done { opacity: 1; }
+.later-done:hover { background: color-mix(in srgb, #30a46c 20%, transparent); color: #30a46c; }
+.later-done:focus-visible { opacity: 1; outline: 2px solid var(--accent); }
+.later-empty { margin: 8px 0 0; font-size: 13px; line-height: 1.5; }
+.later-empty[hidden] { display: none; }
 
 .bg-panel:not([hidden]) {
   display: flex;
