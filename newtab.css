@@ -222,6 +222,51 @@ kbd {
 }
 body.has-bg .palette-footer { color: rgba(255, 255, 255, 0.85); text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5); }
 
+/* "Opening…": a loading bar sweeps along the box and the chosen row shows a spinner. */
+.palette-progress {
+  position: absolute;
+  inset: 0;              /* the palette is exactly as tall as the box; everything else floats */
+  border-radius: 999px;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.palette-progress::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 35%;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--accent);
+  transform: translateX(-100%);
+}
+.palette.navigating .palette-progress { opacity: 1; }
+.palette.navigating .palette-progress::after { animation: palette-progress 1.1s cubic-bezier(0.4, 0, 0.2, 1) infinite; }
+@keyframes palette-progress { to { transform: translateX(290%); } }
+.palette.navigating .search { color: var(--muted); }
+
+.pal-row.loading .pal-hint { visibility: visible; color: var(--accent); }
+.pal-row.loading .pal-hint::before {
+  content: '';
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin-right: 6px;
+  vertical-align: -1px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: palette-spin 0.7s linear infinite;
+}
+@keyframes palette-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .palette.navigating .palette-progress::after { animation: none; width: 100%; transform: none; opacity: 0.6; }
+  .pal-row.loading .pal-hint::before { animation: none; }
+}
+
 .palette-toast {
   position: absolute;
   left: 50%;

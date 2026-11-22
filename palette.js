@@ -213,22 +213,20 @@
 
   /* ---------- building results ---------- */
 
-  const open = (url, newTab) => {
+  /* Both return a promise that rejects if Chrome refuses the navigation. */
+  async function open(url, newTab) {
     if (typeof chrome !== 'undefined' && chrome.tabs?.update) {
-      newTab ? chrome.tabs.create({ url }) : chrome.tabs.update({ url });
-    } else if (newTab) {
-      window.open(url, '_blank', 'noopener');
-    } else {
-      location.href = url;
+      return newTab ? chrome.tabs.create({ url }) : chrome.tabs.update({ url });
     }
-  };
+    if (newTab) window.open(url, '_blank', 'noopener');
+    else location.href = url;
+  }
 
-  function webSearch(text, newTab) {
+  async function webSearch(text, newTab) {
     if (typeof chrome !== 'undefined' && chrome.search?.query) {
-      chrome.search.query({ text, disposition: newTab ? 'NEW_TAB' : 'CURRENT_TAB' }); // the user's default engine
-    } else {
-      open(`https://www.google.com/search?q=${encodeURIComponent(text)}`, newTab);
+      return chrome.search.query({ text, disposition: newTab ? 'NEW_TAB' : 'CURRENT_TAB' }); // the user's default engine
     }
+    return open(`https://www.google.com/search?q=${encodeURIComponent(text)}`, newTab);
   }
 
   function commandItem(cmd, { arg = '', section = 'Commands' } = {}) {
@@ -395,10 +393,60 @@
     toastTimer = setTimeout(() => toast.classList.remove('show'), 2600);
   }
 
+  /* ---------- "opening…" state: instant feedback while the next site loads ---------- */
+
+  const palette = input.closest('.palette');
+  let navigating = false;
+  let navTimer = null;
+
+  function startNavigating() {
+    navigating = true;
+    palette.classList.add('navigating');
+    input.readOnly = true;
+    input.setAttribute('aria-busy', 'true');
+    const row = list.querySelector('.pal-row.active');
+    if (row) {
+      row.classList.add('loading');
+      row.querySelector('.pal-hint').textContent = 'Opening…';
+    }
+    clearTimeout(navTimer);
+    navTimer = setTimeout(stopNavigating, 15000); // the site never committed: let the user retry
+  }
+
+  function stopNavigating() {
+    if (!navigating) return;
+    navigating = false;
+    clearTimeout(navTimer);
+    palette.classList.remove('navigating');
+    input.readOnly = false;
+    input.removeAttribute('aria-busy');
+    render();
+  }
+
+  // Coming back with the Back button can restore this page from cache mid-"opening".
+  window.addEventListener('pageshow', e => { if (e.persisted) stopNavigating(); });
+
+  const hostOf = url => { try { return new URL(url).hostname.replace(/^www\./, '') || url; } catch { return url; } };
+
+  async function navigate(item, newTab) {
+    const go = () => (item.url ? open(item.url, newTab) : webSearch(item.search, newTab));
+    if (newTab) {
+      await go().catch(() => {});
+      say(`Opened ${item.url ? hostOf(item.url) : 'search'} in a new tab`);
+      return;
+    }
+    startNavigating();
+    try {
+      await go();
+    } catch {
+      stopNavigating();
+      say('Couldn’t open that');
+    }
+  }
+
   async function runItem(item, { newTab = false } = {}) {
-    if (!item) return;
-    if (item.url) return open(item.url, newTab);
-    if (item.search) return webSearch(item.search, newTab);
+    if (!item || navigating) return; // one Enter is enough
+    if (item.url || item.search) return navigate(item, newTab);
     const message = await item.run();
     if (!item.keepOpen) {
       input.value = '';
@@ -418,6 +466,12 @@
   input.addEventListener('input', () => { active = 0; render(); });
 
   input.addEventListener('keydown', e => {
+    if (navigating) {
+      // While a site is opening: Esc gives the box back, everything else waits.
+      if (e.key === 'Escape') { e.stopPropagation(); stopNavigating(); }
+      if (e.key !== 'Tab') e.preventDefault();
+      return;
+    }
     const n = items.length;
     switch (e.key) {
       case 'ArrowDown':
