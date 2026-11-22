@@ -255,10 +255,25 @@
     </section>
 
 
-    <section class="panel bg-panel" data-panel="background" data-title="Background" aria-labelledby="bg-title" hidden>
+    <section class="panel bg-panel" data-panel="background" data-title="Appearance" aria-labelledby="bg-title" hidden>
       <div class="panel-head">
-        <h2 id="bg-title">Background</h2>
+        <h2 id="bg-title">Appearance</h2>
       </div>
+
+      <h3 class="panel-sub" id="pos-title">Clock &amp; search position</h3>
+      <div id="pos-grid" class="pos-grid" role="group" aria-labelledby="pos-title">
+        <button type="button" data-pos="top-left" aria-label="Top left" title="Top left"></button>
+        <button type="button" data-pos="top-center" aria-label="Top" title="Top"></button>
+        <button type="button" disabled aria-label="Top right (used by the icons)" title="Used by the icons"></button>
+        <button type="button" data-pos="middle-left" aria-label="Left" title="Left"></button>
+        <button type="button" data-pos="center" aria-label="Center" title="Center"></button>
+        <button type="button" data-pos="middle-right" aria-label="Right" title="Right"></button>
+        <button type="button" data-pos="bottom-left" aria-label="Bottom left" title="Bottom left"></button>
+        <button type="button" data-pos="bottom-center" aria-label="Bottom" title="Bottom"></button>
+        <button type="button" data-pos="bottom-right" aria-label="Bottom right" title="Bottom right"></button>
+      </div>
+
+      <h3 class="panel-sub">Background</h3>
 
       <label class="bg-upload">
         <input id="bg-file" type="file" accept="image/*,video/*">
@@ -290,6 +305,7 @@
   <script src="calendar.js"></script>
   <script src="pomodoro-core.js"></script>
   <script src="pomodoro.js"></script>
+  <script src="layout.js"></script>
   <script src="tone.js"></script>
   <script src="background.js"></script>
   <script src="readlater.js"></script>

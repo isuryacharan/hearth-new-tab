@@ -13,6 +13,9 @@ The new tab has two vertical pages:
    [DummyJSON](https://dummyjson.com/quotes/random). The quote is fetched once per day and cached with the date
    (`quote.js`), so every new tab that day shows it without a network request. Turn it off with the × that
    appears on hover, or toggle it with the `quote` command; while it's off, nothing is fetched.
+   The clock and command bar can sit in 8 spots (all but the top right, where the icons are): pick one in
+   Appearance (`B`) or type e.g. `position bottom left`. They glide to the new spot; left/right spots align to
+   that side, bottom spots open results upwards and move the quote to the top (`layout.js`).
 2. **Bookmarks**: the full grid with folders. Scroll down, click "Bookmarks ⌄", or press `↓` / `PageDown` /
    `Space` to get there; scroll up from the top, press `↑` / `PageUp`, or `/` to return. Reopening a folder lands here.
    The page itself never scrolls: quick links and the folder path stay put and only the grid scrolls (Read later
@@ -41,6 +44,7 @@ Chrome normally keeps the cursor in the address bar on new tabs, so the page rel
 | `bookmarks` | goes to the bookmarks page |
 | `later` | opens the read later list (saved pages also show up in search results) |
 | `quote` | shows / hides the daily quote |
+| `position top left`, `position bottom`, … | moves the clock & command bar (`position` alone opens the picker) |
 | `12*4.5`, `=2^10` | calculates; `Enter` copies the result |
 | `github.com`, `localhost:3000` | opens the address |
 | `yt lofi beats`, `g …`, `ddg …` | searches a specific engine (keywords below) |
@@ -77,7 +81,7 @@ Each chip shows live information at a glance:
 | Calendar | next event still ahead today, or today's all-day events | `C` |
 | To-do | number of open tasks | `T` |
 | Notes | first line, on hover | `N` |
-| Background | — | `B` |
+| Appearance | — (clock & search position, background) | `B` |
 
 Click a chip or press its key to open that widget in a **drawer**. Its input is focused, so for example
 `T` → type → `Enter` adds a task without touching the mouse. Icons along the top of the drawer switch widgets.
@@ -121,7 +125,7 @@ instead of over them.
   pages are skipped. The list sits beside the bookmarks on the second page (below them on narrow windows); the
   `R` key and the `later` command jump there. Click to open (`Ctrl`-click: new tab), ✓ marks as
   read and removes it. Uses the `contextMenus` and `activeTab` permissions (no install warnings).
-- **Custom background**: open the Background chip to upload an image or video (up to 500 MB, kept in
+- **Custom background**: open Appearance (`B`) to upload an image or video (up to 500 MB, kept in
   the extension's IndexedDB) or paste an image/video URL. Videos play muted on a loop and pause in background tabs.
   A dim slider keeps text readable; "Reset to default" removes it.
 

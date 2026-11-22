@@ -217,7 +217,25 @@
     { keywords: ['calendar', 'agenda'], title: 'Open calendar', icon: () => dockIcon('calendar'), run: openWidget('calendar') },
     { keywords: ['todos', 'tasks', 'to-do list'], title: 'Open to-do list', icon: () => dockIcon('todo'), run: openWidget('todo') },
     { keywords: ['notes'], title: 'Open notes', icon: () => dockIcon('notes'), run: openWidget('notes') },
-    { keywords: ['background', 'wallpaper', 'bg'], title: 'Change background', icon: () => dockIcon('background'), run: openWidget('background') },
+    { keywords: ['background', 'wallpaper', 'bg', 'appearance'], title: 'Change background', icon: () => dockIcon('background'), run: openWidget('background') },
+    {
+      // "position top left", "position bottom", "position center" — move the clock & search
+      keywords: ['position', 'layout', 'move'], title: 'Position clock & search', icon: () => SVG.grid, arg: 'top left',
+      preview: arg => {
+        const pos = Layout.parse(arg);
+        if (pos === 'top-right') return { title: 'Top right is where the icons live', subtitle: 'Try top, top left, right, bottom…' };
+        return pos
+          ? { title: `Move clock & search: ${Layout.label(pos)}`, subtitle: pos === Layout.current() ? 'It’s already there' : 'Appearance' }
+          : { title: 'Position clock & search…', subtitle: 'top · bottom · left · right · center, e.g. "position bottom left"' };
+      },
+      run: async arg => {
+        const pos = Layout.parse(arg);
+        if (!pos || pos === 'top-right') return null;
+        await Layout.set(pos);
+        return `Clock & search: ${Layout.label(pos)}`;
+      },
+    },
+    { keywords: ['position', 'layout'], title: 'Choose clock & search position', icon: () => SVG.grid, run: openWidget('background') },
     { keywords: ['later', 'read later', 'reading list', 'saved'], title: 'Show read later list', icon: () => SVG.later, run: () => { ReadLater.show(); } },
     {
       keywords: ['quote', 'daily quote', 'quotes'], icon: () => SVG.quote,

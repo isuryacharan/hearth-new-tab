@@ -87,10 +87,12 @@ html, body { height: 100%; overflow: hidden; }
  * pre-blurred copy of the clock that is crossfaded in (opacity is nearly free for the GPU).
  */
 .home {
-  display: flex;
-  flex-direction: column;
-  padding: 72px 24px 96px;
-  transform-origin: 50% 40%;
+  --ox: 50%; /* where the "recede" effect is centred: follows the clock's position */
+  --oy: 40%;
+  display: grid;
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+  padding: 76px 32px 104px;
+  transform-origin: var(--ox) var(--oy);
   transform: translate3d(0, calc(var(--p) * -12vh), 0) scale(calc(1 - var(--p) * 0.07));
 }
 .home-inner {
@@ -110,13 +112,40 @@ html, body { height: 100%; overflow: hidden; }
 .home-inner {
   position: relative;
   top: -9vh; /* the clock sits a little above center, leaving room for results below */
-  margin: auto;
+  align-self: center;
+  justify-self: center;
   width: min(760px, 100%);
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 28px;
 }
+
+/*
+ * Position of the clock + command bar (layout.js sets data-pos on .home):
+ * top-left · top-center · middle-left · center · middle-right · bottom-left · bottom-center · bottom-right
+ * (top-right belongs to the dock). Left/right positions align their content to that side.
+ */
+.home[data-pos^="top-"] .home-inner { align-self: start; top: 0; }
+.home[data-pos^="bottom-"] .home-inner { align-self: end; top: 0; }
+.home[data-pos$="-left"] .home-inner { justify-self: start; align-items: flex-start; width: min(620px, 100%); }
+.home[data-pos$="-right"] .home-inner { justify-self: end; align-items: flex-end; width: min(620px, 100%); }
+.home[data-pos$="-left"] .clock { text-align: left; }
+.home[data-pos$="-right"] .clock { text-align: right; }
+.home[data-pos^="top-"] { --oy: 15%; }
+.home[data-pos^="bottom-"] { --oy: 85%; }
+.home[data-pos$="-left"] { --ox: 20%; }
+.home[data-pos$="-right"] { --ox: 80%; }
+
+/* at the bottom, results open upwards (list nearest the bar) and messages appear above it */
+.home[data-pos^="bottom-"] .palette-drop { top: auto; bottom: calc(100% + 10px); display: flex; flex-direction: column-reverse; }
+.home[data-pos^="bottom-"] .palette-drop .palette-footer { margin: 0 0 10px; }
+.home[data-pos^="bottom-"] .palette-toast { top: auto; bottom: calc(100% + 10px); }
+.home[data-pos^="bottom-"] .palette-list:not([hidden]) { animation-name: palette-in-up; }
+@keyframes palette-in-up { from { opacity: 0; transform: translate3d(0, 6px, 0) scale(0.985); } }
+/* ...and the daily quote moves to the top, out of the way */
+.home[data-pos^="bottom-"] .quote { bottom: auto; top: 76px; }
+@media (max-width: 1100px) { .home[data-pos^="bottom-"] .quote { display: none; } } /* no room beside the dock */
 /* ---------- command palette ---------- */
 
 .palette { position: relative; width: min(620px, 100%); }
@@ -1526,6 +1555,47 @@ body.has-bg .quick-error { text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6); }
 .later-done:focus-visible { opacity: 1; outline: 2px solid var(--accent); }
 .later-empty { margin: 8px 0 0; font-size: 13px; line-height: 1.5; }
 .later-empty[hidden] { display: none; }
+
+/* ---------- appearance: position picker ---------- */
+
+.panel-sub {
+  margin: 4px 0 -4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+/* a miniature screen: 3 × 3 spots, the dock's corner marked and unavailable */
+.pos-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 6px;
+  width: 168px;
+  aspect-ratio: 16 / 10;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+}
+.pos-grid button {
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--muted) 16%, transparent);
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+.pos-grid button::after { content: ''; width: 46%; height: 3px; border-radius: 2px; background: var(--muted); opacity: 0.6; }
+.pos-grid button:hover { background: color-mix(in srgb, var(--accent) 22%, transparent); }
+.pos-grid button[aria-pressed="true"] { background: var(--accent); }
+.pos-grid button[aria-pressed="true"]::after { background: #fff; opacity: 1; }
+.pos-grid button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.pos-grid button:disabled { cursor: not-allowed; background: none; border: 1px dashed var(--border); }
+.pos-grid button:disabled::after { content: none; }
 
 .bg-panel:not([hidden]) {
   display: flex;
