@@ -5,7 +5,10 @@ A Chrome extension (Manifest V3) that replaces the new tab page with a grid of y
 ## Layout
 The new tab has two vertical pages:
 
-1. **Home**: only the clock and the command palette (see below).
+1. **Home**: only the clock, the command palette (see below) and a quote of the day from
+   [DummyJSON](https://dummyjson.com/quotes/random). The quote is fetched once per day and cached with the date
+   (`quote.js`), so every new tab that day shows it without a network request. Turn it off with the × that
+   appears on hover, or toggle it with the `quote` command; while it's off, nothing is fetched.
 2. **Bookmarks**: the full grid with folders. Scroll down, click "Bookmarks ⌄", or press `↓` / `PageDown` /
    `Space` to get there; scroll up from the top, press `↑` / `PageUp`, or `/` to return. Reopening a folder lands here.
 
@@ -30,6 +33,7 @@ Chrome normally keeps the cursor in the address bar on new tabs, so the page rel
 | `focus`, `break`, `long break`, `pause`, `reset`, `skip` | controls the pomodoro timer |
 | `weather`, `city`, `units`, `calendar`, `todos`, `notes`, `background` | opens that widget (or changes the city / °C–°F) |
 | `bookmarks` | goes to the bookmarks page |
+| `quote` | shows / hides the daily quote |
 | `12*4.5`, `=2^10` | calculates; `Enter` copies the result |
 | `github.com`, `localhost:3000` | opens the address |
 | `yt lofi beats`, `g …`, `ddg …` | searches a specific engine (keywords below) |

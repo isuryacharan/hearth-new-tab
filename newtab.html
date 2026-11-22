@@ -84,6 +84,11 @@
           <p id="palette-toast" class="palette-toast" role="status" aria-live="polite"></p>
         </div>
       </div>
+      <figure id="quote" class="quote" hidden>
+        <blockquote id="quote-text"></blockquote>
+        <figcaption id="quote-author"></figcaption>
+        <button id="quote-hide" class="quote-hide" type="button" aria-label="Hide daily quote" title="Hide daily quote">×</button>
+      </figure>
       <button id="to-bookmarks" class="page-hint" type="button" aria-label="Show all bookmarks">
         <span>Bookmarks</span>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.4 8.6 12 13.2l4.6-4.6L18 10l-6 6-6-6z"/></svg>
@@ -253,5 +258,6 @@
   <script src="pomodoro.js"></script>
   <script src="background.js"></script>
   <script src="palette.js"></script>
+  <script src="quote.js"></script>
 </body>
 </html>
