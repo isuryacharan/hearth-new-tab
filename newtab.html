@@ -57,8 +57,15 @@
     <section id="page-home" class="layer home" aria-label="Home">
       <div class="home-inner">
         <div class="clock">
-          <div id="time" class="time"></div>
-          <div id="date" class="date"></div>
+          <div class="clock-sharp">
+            <div id="time" class="time"></div>
+            <div id="date" class="date"></div>
+          </div>
+          <!-- pre-blurred copy; crossfaded in during page transitions (see CSS) -->
+          <div class="clock-ghost" aria-hidden="true">
+            <div id="time-ghost" class="time"></div>
+            <div id="date-ghost" class="date"></div>
+          </div>
         </div>
         <input id="search" class="search" type="search" placeholder="Search bookmarks  ( / )" autocomplete="off" spellcheck="false">
         <div id="results" class="grid results" aria-live="polite" hidden></div>

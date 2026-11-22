@@ -68,21 +68,40 @@ html, body { height: 100%; overflow: hidden; }
   overscroll-behavior: contain;
 }
 /* While moving, each animated piece gets its own GPU layer so frames are composited, not repainted. */
-.stage.moving .layer { will-change: transform, opacity; }
+.stage.moving .layer { will-change: transform; }
 .stage.moving .bookmarks-layer .tile,
 .stage.moving .bookmarks-layer .crumbs { will-change: translate, scale, opacity; }
 
-/* Home recedes: drifts up, shrinks a touch, blurs and fades — like stepping back from it. */
+/*
+ * Home recedes: drifts up, shrinks a touch, blurs and fades — like stepping back from it.
+ *
+ * Measured with a 1080p video wallpaper at 165 Hz, the costly parts were (1) a blur whose
+ * radius changes every frame — Chrome rebuilds the filter each frame (10–24 ms GPU draws) — and
+ * (2) fading whole full-screen layers, which forces full-screen offscreen passes. So: nothing
+ * fades as a full-screen layer, only the content inside it; and the blur is a fixed-radius,
+ * pre-blurred copy of the clock that is crossfaded in (opacity is nearly free for the GPU).
+ */
 .home {
   display: flex;
   flex-direction: column;
   padding: 72px 24px 96px;
   transform-origin: 50% 40%;
   transform: translate3d(0, calc(var(--p) * -12vh), 0) scale(calc(1 - var(--p) * 0.07));
-  opacity: clamp(0, calc(1 - var(--p) * 1.9), 1);
 }
-/* Blur only the clock/search box (not a full-screen layer), and only while it's still visible. */
-.stage.moving .home-inner { filter: blur(calc(clamp(0, var(--p), 0.55) * 16px)); }
+.home-inner {
+  --fade: clamp(0, calc(1 - var(--p) * 1.9), 1);   /* home content fades out by p ≈ 0.53 */
+  --soften: clamp(0, calc(var(--p) * 3.2), 1);     /* sharp → blurred over the first third */
+}
+.home-inner > :not(.clock) { opacity: var(--fade); }
+.clock { position: relative; }
+.clock-sharp { opacity: calc(var(--fade) * (1 - var(--soften))); }
+.clock-ghost {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  filter: blur(8px); /* fixed radius: built once, not per frame */
+  opacity: calc(var(--fade) * var(--soften));
+}
 .home-inner {
   position: relative;
   top: -6vh; /* the clock sits a little above center while idle */
@@ -101,8 +120,8 @@ html, body { height: 100%; overflow: hidden; }
 /* Bookmarks rise in from below; tiles follow in a staggered diagonal wave (--i set per tile). */
 .bookmarks-layer {
   transform: translate3d(0, calc((1 - var(--p)) * 26vh), 0);
-  opacity: clamp(0, calc(var(--p) * 1.9 - 0.45), 1);
 }
+.bookmarks-layer .empty { opacity: clamp(0, calc(var(--p) * 1.9 - 0.45), 1); }
 .bookmarks-layer .crumbs,
 .bookmarks-layer .tile {
   --tp: clamp(0, calc(var(--p) * 1.9 - var(--i, 0) * 0.05 - 0.4), 1.04);
@@ -113,14 +132,16 @@ html, body { height: 100%; overflow: hidden; }
 }
 
 /*
- * The wallpaper zooms in and dims slightly as you go deeper. The zoom is a composited transform
- * on its own layer; the dimming is an overlay's opacity (cheap) rather than a brightness filter
- * (which re-filters every pixel of the image or video each frame).
+ * The wallpaper zooms in and dims slightly as you go deeper. pages.js animates both with the Web
+ * Animations API (transform + opacity only), so they run on the compositor thread and stay smooth
+ * even if a page frame is late. Dimming is an overlay's opacity, not a brightness filter (which
+ * would re-filter every pixel of the image or video each frame).
  */
 .bg {
   transform-origin: 50% 50%;
-  transform: scale(calc(1 + var(--p) * 0.06));
+  transform: scale(1);
   will-change: transform;
+  backface-visibility: hidden; /* keep it on one stable GPU layer */
 }
 .bg-depth {
   position: fixed;
@@ -128,7 +149,8 @@ html, body { height: 100%; overflow: hidden; }
   z-index: 0;
   pointer-events: none;
   background: #000;
-  opacity: calc(clamp(0, var(--p), 1) * 0.22);
+  opacity: 0;
+  will-change: opacity;
 }
 body:not(.has-bg) .bg-depth { display: none; }
 
@@ -835,37 +857,23 @@ body.has-bg .empty,
 body.has-bg .page-hint { color: #fff; text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6); }
 /*
  * Frosted glass. backdrop-filter re-blurs whatever is behind an element on every frame that
- * anything behind it changes, so while the pages move (body.page-moving) the glass switches to
- * a slightly denser tint with no blur; the blur fades back in once everything has settled.
- * (Each state's own `transition` applies when entering it: instant off, eased back on.)
+ * anything behind it changes, so while the pages move (body.page-moving) the blur is switched
+ * off and comes back when they settle. Only the blur effect toggles; the tint stays the same,
+ * because changing a background colour means re-rasterising every tile (measured hitches).
  */
 body.has-bg .tile,
 body.has-bg .panel,
 body.has-bg .search {
-  background: color-mix(in srgb, var(--tile) 78%, transparent);
+  background: color-mix(in srgb, var(--tile) 82%, transparent);
   backdrop-filter: blur(14px);
-  transition: transform 0.12s ease, box-shadow 0.12s ease, background-color 0.3s ease, backdrop-filter 0.3s ease;
 }
 body.has-bg .tile:hover { background: color-mix(in srgb, var(--tile-hover) 92%, transparent); }
 
 body.has-bg.page-moving .tile,
 body.has-bg.page-moving .panel,
-body.has-bg.page-moving .search {
-  background: color-mix(in srgb, var(--tile) 90%, transparent);
-  backdrop-filter: none;
-  transition: none;
-}
-body.has-bg.page-moving .dock {
-  background: color-mix(in srgb, var(--tile) 90%, transparent);
-  backdrop-filter: none;
-  transition: right 0.24s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.15s;
-}
-body.has-bg.page-moving .drawer {
-  background: color-mix(in srgb, var(--tile) 96%, transparent);
-  backdrop-filter: none;
-}
-body.has-bg .dock { transition: right 0.24s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.15s, background-color 0.3s ease, backdrop-filter 0.3s ease; }
-body.has-bg .drawer.open { transition: transform 0.24s cubic-bezier(0.2, 0.8, 0.2, 1), background-color 0.3s ease, backdrop-filter 0.3s ease; }
+body.has-bg.page-moving .search,
+body.has-bg.page-moving .dock,
+body.has-bg.page-moving .drawer { backdrop-filter: none; }
 
 .bg-panel:not([hidden]) {
   display: flex;

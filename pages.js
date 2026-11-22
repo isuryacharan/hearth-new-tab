@@ -7,8 +7,11 @@
  *   carries momentum and settles with a hint of overshoot.
  * - Trackpad swipes move --p 1:1 with your fingers; on release the spring takes over with the
  *   gesture's velocity. A mouse-wheel notch is a short, fast gesture, so it flips the page too.
- * - Everything visual (parallax, scale, blur, fade, staggered tiles, wallpaper zoom) is CSS
- *   computed from --p, so it all moves in lockstep with the spring.
+ * - The pages (parallax, scale, blur, fade, staggered tiles) are CSS computed from --p.
+ * - The wallpaper zoom/dim is different: it is the largest surface on screen, so a single late
+ *   main-thread frame shows as a jitter. Instead of following --p, it gets the same spring curve
+ *   precomputed as a Web Animation, which the browser runs on its compositor thread, unaffected
+ *   by whatever the page is doing. While a finger drags, it follows the finger directly.
  */
 (() => {
   const stage = document.getElementById('stage');
@@ -34,14 +37,71 @@
   };
   const listeners = new Set();
 
-  // --p is set only on the elements that use it, not on <html>, so each frame restyles just the
-  // moving parts instead of the whole page (dock, drawer, widgets…).
-  const consumers = [stage, document.getElementById('bg'), document.getElementById('bg-depth')];
+  // Spring step shared by the live loop and the precomputed wallpaper curve.
+  const SETTLED = (x, v, target) => Math.abs(x - target) < 0.0004 && Math.abs(v) < 0.004;
+  function integrate(x, v, target, dt) {
+    const steps = Math.max(1, Math.ceil(dt / 0.004)); // small fixed steps: stable at any frame rate
+    const h = dt / steps;
+    for (let i = 0; i < steps; i++) {
+      const a = -STIFFNESS * (x - target) - FRICTION * v;
+      v += a * h;
+      x += v * h;
+    }
+    return [x, v];
+  }
 
-  function setP(p) {
+  /* ---------- wallpaper: runs on the compositor ---------- */
+
+  const bg = document.getElementById('bg');
+  const depth = document.getElementById('bg-depth');
+  const ZOOM = 0.06; // wallpaper grows 6 % on the bookmarks page
+  const DIM = 0.22;  // and darkens 22 %
+  const bgScale = p => `scale(${(1 + p * ZOOM).toFixed(5)})`;
+  const dimOpacity = p => (Math.min(1, Math.max(0, p)) * DIM).toFixed(4);
+  let bgAnims = [];
+
+  /* Put the wallpaper at p right now (drag frames, jumps, end states). */
+  function holdBackground(p) {
+    for (const a of bgAnims) a.cancel();
+    bgAnims = [];
+    bg.style.transform = bgScale(p);
+    depth.style.opacity = dimOpacity(p);
+  }
+
+  /* The spring's path from (x0, v0) to target, sampled at 120 Hz. */
+  function springCurve(x0, v0, target) {
+    const dt = 1 / 120;
+    const curve = [x0];
+    let x = x0;
+    let v = v0;
+    for (let i = 0; i < 360; i++) { // 3 s cap
+      [x, v] = integrate(x, v, target, dt);
+      curve.push(x);
+      if (SETTLED(x, v, target)) break;
+    }
+    curve[curve.length - 1] = target;
+    return { curve, duration: (curve.length - 1) * dt * 1000 };
+  }
+
+  /* Hand the whole transition to the compositor: transform + opacity keyframes, linear between samples. */
+  function playBackground(x0, v0, target) {
+    holdBackground(target); // resting values underneath, shown when the animation ends
+    if (!document.body.classList.contains('has-bg')) return; // nothing to zoom
+    const { curve, duration } = springCurve(x0, v0, target);
+    const n = curve.length - 1;
+    const timing = { duration, easing: 'linear' };
+    bgAnims = [
+      bg.animate(curve.map((x, i) => ({ offset: i / n, transform: bgScale(x) })), timing),
+      depth.animate(curve.map((x, i) => ({ offset: i / n, opacity: dimOpacity(x) })), timing),
+    ];
+  }
+
+  // --p is set only on the stage, not on <html>, so each frame restyles just the moving pages
+  // instead of the whole document (dock, drawer, widgets…).
+  function setP(p, { background = true } = {}) {
     state.p = p;
-    const value = p.toFixed(4);
-    for (const el of consumers) el.style.setProperty('--p', value);
+    stage.style.setProperty('--p', p.toFixed(4));
+    if (background) holdBackground(p);
   }
 
   function setMoving(on) {
@@ -77,29 +137,21 @@
 
     state.mode = 'spring';
     setMoving(true);
+    playBackground(state.p, state.v, target); // wallpaper runs the same spring on the compositor
     let last = performance.now();
     const step = now => {
       const dt = Math.min(0.064, (now - last) / 1000);
       last = now;
-      // integrate in small fixed steps for stability regardless of frame rate
-      const steps = Math.max(1, Math.ceil(dt / 0.004));
-      const h = dt / steps;
-      let x = state.p;
-      let v = state.v;
-      for (let i = 0; i < steps; i++) {
-        const a = -STIFFNESS * (x - target) - FRICTION * v;
-        v += a * h;
-        x += v * h;
-      }
+      const [x, v] = integrate(state.p, state.v, target, dt);
       state.v = v;
-      if (Math.abs(x - target) < 0.0004 && Math.abs(v) < 0.004) {
-        setP(target);
+      if (SETTLED(x, v, target)) {
+        setP(target, { background: false }); // the compositor animation lands on its own
         state.v = 0;
         state.mode = 'idle';
         settled(target);
         return;
       }
-      setP(x);
+      setP(x, { background: false });
       state.raf = requestAnimationFrame(step);
     };
     state.raf = requestAnimationFrame(step);

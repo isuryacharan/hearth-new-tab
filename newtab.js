@@ -223,10 +223,16 @@ function openFolder(id) {
 
 /* ---------- clock ---------- */
 
+const timeGhost = document.getElementById('time-ghost');
+const dateGhost = document.getElementById('date-ghost');
+
 function tick() {
   const now = new Date();
-  els.time.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  els.date.textContent = now.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
+  const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const date = now.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
+  // only touch the DOM when the text changes, so the clock layers aren't repainted every second
+  if (els.time.textContent !== time) els.time.textContent = timeGhost.textContent = time;
+  if (els.date.textContent !== date) els.date.textContent = dateGhost.textContent = date;
 }
 
 /* ---------- wiring ---------- */
