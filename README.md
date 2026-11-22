@@ -1,58 +1,124 @@
-# Hearth
+# Hearth — a calm, keyboard-first new tab page for Chrome
 
-*A calm, keyboard-first home for every new tab.*
+**Hearth** is a minimal **new tab extension for Google Chrome** that turns every new tab into a quiet home base:
+a big clock and a **command palette** up front, your **bookmarks**, **quick links** and **read later** list one
+scroll away, and **to-dos**, a **pomodoro timer**, **weather**, a **calendar** and **notes** one keystroke away.
+It works with an image or **video wallpaper**, keeps all your data on your computer, and needs no account.
 
-Hearth is a Chrome extension (Manifest V3) that replaces the new tab page: a quiet clock and command palette
-up front, your bookmarks, quick links and read later list one scroll away, and to-dos, a pomodoro timer,
-weather, calendar and notes a keystroke away.
+![Hearth new tab page: a large clock and command bar over a video wallpaper, with live weather, a pomodoro countdown, the next calendar event and the top to-dos in the corner](docs/screenshots/home.webp)
 
-## Layout
-The new tab has two vertical pages:
+- **Minimal by default** — just the clock and a search box until you need something else.
+- **Keyboard-first** — the search box has the cursor when a tab opens; `/` or `Ctrl+K` brings you back from anywhere.
+- **Private** — no account, no analytics, no tracking. Everything is stored locally in your browser.
+- **Fast and smooth** — spring-based page transitions that stay smooth on high-refresh displays and over video backgrounds.
 
-1. **Home**: only the clock, the command palette (see below) and a quote of the day from
-   [DummyJSON](https://dummyjson.com/quotes/random). The quote is fetched once per day and cached with the date
-   (`quote.js`), so every new tab that day shows it without a network request. Turn it off with the × that
-   appears on hover, or toggle it with the `quote` command; while it's off, nothing is fetched.
-   The clock and command bar can sit in 8 spots (all but the top right, where the icons are): pick one in
-   Appearance (`B`) or type e.g. `position bottom left`. They glide to the new spot; left/right spots align to
-   that side, bottom spots open results upwards and move the quote to the top (`layout.js`).
-2. **Bookmarks**: the full grid with folders. Scroll down, click "Bookmarks ⌄", or press `↓` / `PageDown` /
-   `Space` to get there; scroll up from the top, press `↑` / `PageUp`, or `/` to return. Reopening a folder lands here.
-   The page itself never scrolls: quick links and the folder path stay put and only the grid scrolls (Read later
-   has its own scrolling when long). Scrollbars are thin and only appear while the pointer is over a scrolling area.
+---
 
-The transition is a custom spring (`pages.js`, Apple-style response 0.55 s / damping 0.825) rather than browser
-scrolling. A trackpad swipe moves the page with your fingers and hands its speed to the spring when you let go;
-a mouse-wheel notch flips the page. As you go down, the clock drifts up, shrinks, blurs and fades, the wallpaper
-zooms and dims slightly, and the tiles rise in a staggered diagonal wave. With *reduce motion* turned on in the
-OS, pages switch instantly.
+## Contents
+- [Features](#features)
+- [Screenshots](#screenshots)
+- [Install](#install)
+- [Command palette](#command-palette)
+- [Keyboard shortcuts](#keyboard-shortcuts)
+- [Privacy and permissions](#privacy-and-permissions)
+- [FAQ](#faq)
+- [Project structure](#project-structure)
+
+---
+
+## Features
+
+### Command palette (search box)
+One box for everything: **search bookmarks**, open a **URL**, do **quick maths**, **search the web** with
+your default engine or a specific one (Google, DuckDuckGo, Bing, Brave, YouTube, Wikipedia, GitHub, Reddit,
+Stack Overflow, MDN, npm, Google Maps), or **ask ChatGPT or Claude** with your text as the prompt. It also runs
+commands — `todo buy milk`, `note …`, `event fri 2pm dentist`, `focus`, `weather` — without leaving the keyboard.
+Instant "Opening…" feedback means one Enter is always enough. [All commands ↓](#command-palette)
+
+### Bookmarks, quick links and read later
+- **Bookmark grid** with folders, breadcrumbs and site icons, on a second page below the clock (scroll, click
+  "Bookmarks ⌄" or press `↓`). Updates live when your bookmarks change.
+- **Quick links**: pin any bookmark with the ☆ on its tile, or add your own link. Reorder by dragging.
+- **Read later list**: right-click any page or link → *Add to Read Later*. The list sits beside your
+  bookmarks; ✓ marks an article as read.
+
+### To-do list with priorities
+- Add tasks from the palette (`todo pay rent !1`) or the to-do drawer (`T`).
+- **Priorities** High / Medium / Low (`!1` `!2` `!3`), **drag to reorder** (or use the keyboard), sort by priority.
+- **Always in view, never in the way**: your top 3 open tasks sit faintly under the corner icons, highest
+  priority first, and brighten on hover. Their text colour adapts to the wallpaper behind them.
+
+### Pomodoro timer
+25 / 5 / 15-minute focus and break sessions with a long break every 4 focus sessions. Keeps running when you
+close the tab and sends a **desktop notification** when a session ends. The tab title shows the countdown.
+
+### Weather, calendar, notes and daily quote
+- **Weather** for any city with a 5-day forecast — free [Open-Meteo](https://open-meteo.com) data, no API key,
+  no location permission.
+- **Calendar** with a month view and events (`event tomorrow 9:30 standup`).
+- **Notes**: a notepad that saves as you type.
+- **Quote of the day**, fetched once a day (can be turned off).
+
+### Make it yours
+- **Custom background**: upload an **image or video** (up to 500 MB) or paste a link; a dim slider keeps text
+  readable. Videos play muted, loop, and pause in background tabs.
+- **Move the clock and search box** to any of 8 positions.
+- **Light and dark mode** follow your system; reduced-motion settings are respected.
+- **Dock** of live status chips (weather, timer, next event, open tasks) that open each widget in a side drawer,
+  which can be pinned open.
+
+---
+
+## Screenshots
+
+| Command palette | Bookmarks, quick links & read later |
+|---|---|
+| ![Command palette previewing "Add to-do: book flights" with high priority, plus web search, Ask ChatGPT and Ask Claude](docs/screenshots/palette-command.webp) | ![Second page with a quick links row, the bookmark grid and a read later list beside it](docs/screenshots/bookmarks.webp) |
+| **Search** | **To-do list with priorities** |
+| ![Searching "git" finds the GitHub bookmark and offers a web search and AI chats](docs/screenshots/palette-search.webp) | ![To-do drawer with red, amber and blue priority dots](docs/screenshots/todo-drawer.webp) |
+
+---
+
+## Install
+
+Hearth isn't on the Chrome Web Store yet; install it from source in a minute:
+
+1. Download or clone this repository.
+2. Open `chrome://extensions` in Chrome.
+3. Turn on **Developer mode** (top right).
+4. Click **Load unpacked** and select the project folder.
+5. Open a new tab.
+
+Built and tested in Chrome; it should also work in other Chromium browsers with Manifest V3 support (Edge,
+Brave, Arc, Vivaldi). To update after pulling changes, click **Reload** on the extension in `chrome://extensions`.
+
+Tip: Chrome shows a small bar at the bottom of any replaced new tab page. In recent versions you can hide it
+under *Customize Chrome* → *Footer*.
+
+---
 
 ## Command palette
-The box on the home page does more than search bookmarks. It has the cursor when a new tab opens, so you can
-start typing right away; `/` or `Ctrl+K` brings you back to it from anywhere.
 
-Chrome normally keeps the cursor in the address bar on new tabs, so the page reloads itself once with `?focus`
-(see `focus.js`) to take it. The trade-off: the address bar shows the extension's address instead of being empty.
+Type in the search box on the home page. `?` lists every command.
 
 | Type | Does |
 |------|------|
 | `todo buy milk` (or `t …`) | adds a to-do; `todo pay rent !1` adds it with high priority |
 | `note call the bank` (or `n …`) | appends a line to your notes |
-| `event fri 2pm dentist` | adds a calendar event — `today`/`tomorrow`/weekday and `14:30`/`2pm` are optional |
+| `event fri 2pm dentist` | adds a calendar event — `today` / `tomorrow` / weekday and `14:30` / `2pm` are optional |
 | `focus`, `break`, `long break`, `pause`, `reset`, `skip` | controls the pomodoro timer |
 | `weather`, `city`, `units`, `calendar`, `todos`, `notes`, `background` | opens that widget (or changes the city / °C–°F) |
 | `bookmarks` | goes to the bookmarks page |
-| `later` | opens the read later list (saved pages also show up in search results) |
+| `later` | jumps to the read later list |
 | `quote` | shows / hides the daily quote |
-| `position top left`, `position bottom`, … | moves the clock & command bar (`position` alone opens the picker) |
+| `position top left`, `position bottom`, … | moves the clock and search box (`position` alone opens the picker) |
 | `12*4.5`, `=2^10` | calculates; `Enter` copies the result |
 | `github.com`, `localhost:3000` | opens the address |
 | `yt lofi beats`, `g …`, `ddg …` | searches a specific engine (keywords below) |
 | `gpt explain closures`, `claude …` | opens ChatGPT / Claude with your text as the prompt |
-| anything | matching bookmarks and folders, then search the web (default engine), Ask ChatGPT, Ask Claude |
-| `?` | lists every command |
+| anything else | matching bookmarks, folders, quick links and saved pages, then web search, Ask ChatGPT, Ask Claude |
 
-**Search engines & AI** — type the keyword, a space, then your text (the keyword alone + `Tab` fills it in):
+**Search engine and AI keywords** — type the keyword, a space, then your text:
 
 | Engine | Keyword | | Engine | Keyword |
 |---|---|---|---|---|
@@ -64,79 +130,99 @@ Chrome normally keeps the cursor in the address bar on new tabs, so the page rel
 | Wikipedia | `w`, `wiki` | | Google Maps | `maps` |
 | **ChatGPT** | `gpt`, `chat` | | **Claude** | `claude`, `cl` |
 
-ChatGPT and Claude receive the prompt through the link (`chatgpt.com/?q=…`, `claude.ai/new?q=…`); whether it is
-sent automatically or just filled in is decided by each site. Engines are listed in `ENGINES` in `palette.js`.
+ChatGPT and Claude receive the prompt through the link (`chatgpt.com/?q=…`, `claude.ai/new?q=…`); whether it's
+sent automatically or just filled in is up to each site. Add or change engines in `ENGINES` in `palette.js`.
 
-`↑`/`↓` choose · `Enter` run · `Ctrl+Enter` open in a new tab · `Tab` complete a command · `Esc` clears, then leaves.
-`↓` in the empty box goes to the bookmarks page.
+---
 
-## Dock
-Everything else sits in a small **dock** of status chips at the top right, visible on both pages.
-Each chip shows live information at a glance:
+## Keyboard shortcuts
 
-| Chip | Shows | Key |
-|------|-------|-----|
-| Weather | condition + temperature | `W` |
-| Pomodoro | countdown while a session runs (colored by session type) | `P` |
-| Calendar | next event still ahead today, or today's all-day events | `C` |
-| To-do | number of open tasks | `T` |
-| Notes | first line, on hover | `N` |
-| Appearance | — (clock & search position, background) | `B` |
+| Key | Action |
+|---|---|
+| `/` or `Ctrl+K` | focus the command palette |
+| `↑` `↓` · `Enter` · `Ctrl+Enter` · `Tab` · `Esc` | choose · run · open in a new tab · complete a command · clear, then leave |
+| `↓` (empty search box), `PageDown`, `Space` | go to the bookmarks page |
+| `↑`, `PageUp` (at the top of the grid) | back to the home page |
+| `W` `P` `C` `T` `N` `B` | open Weather · Pomodoro · Calendar · To-do · Notes · Appearance (when not typing) |
+| `R` | jump to the read later list |
+| `Backspace` | up one bookmark folder |
+| `Esc` | leave a text field; again to close the drawer |
 
-Click a chip or press its key to open that widget in a **drawer**. Its input is focused, so for example
-`T` → type → `Enter` adds a task without touching the mouse. Icons along the top of the drawer switch widgets.
-`Esc` leaves a text field, a second `Esc` (or a click outside) closes the drawer.
-**Pin** the drawer to have it open on every new tab; on wide screens a pinned drawer sits beside the bookmarks
-instead of over them.
+On the bookmarks page, focus a to-do's grip and press `↑` / `↓` to reorder it; in the calendar, arrow keys and
+`PageUp` / `PageDown` move between days and months.
 
-## Features
-- Bookmarks bar contents shown as icon tiles; "Other bookmarks" / "Mobile bookmarks" appear as folders
-- Click a folder to open it; breadcrumb trail to go back (browser Back and `Backspace` also work)
-- Site favicons via Chrome's `_favicon` API, with a colored letter fallback
-- Search across all bookmarks and folders from the command palette
-- Updates live when bookmarks change; light and dark themes follow the system
-- **To-do list**: add with `Enter`, tick to complete, double-click to edit, `×` to delete, "Clear completed"
-  - **Priority**: end a task with `!1` / `!2` / `!3` (or `!high` / `!med` / `!low`) when adding or editing, or click
-    its dot to cycle High (red) → Medium (amber) → Low (blue) → none. "Sort by priority" orders the list once
-    (completed tasks last); otherwise your own order is kept.
-  - **Reorder**: drag a task by its grip, or focus the grip and press `↑` / `↓`.
-- **To-dos at a glance**: up to 3 open to-dos (highest priority first, circles in priority colours) sit right under the dock, very faint until you hover ("+N more"
-  beyond that, nothing when all is done; hidden while the drawer is open). Tick one off with its circle; click a
-  task to open the full list.
-  Over a wallpaper the text colour follows the image behind it (`tone.js` samples it, accounting for the dim
-  slider, and picks dark or light text by WCAG contrast; videos are re-checked every 2 s)
-- **Notes**: a single notepad that autosaves as you type
-- To-dos and notes are stored locally in `chrome.storage.local` and stay in sync across open tabs
-- **Weather**: current conditions and a 5-day forecast from [Open-Meteo](https://open-meteo.com) (free, no API key).
-  Pick your city from the search box (no location permission is requested); click the pin icon to change it later, and `°C`/`°F` to switch units.
-  Results are cached for 30 minutes.
-- **Pomodoro**: 25 / 5 / 15-minute focus and break timer with a long break after every 4 focus sessions.
-  Keeps running when you close the tab; a background service worker (`sw.js`) shows a desktop notification
-  when a session ends. Gear icon: change lengths, auto-start the next session, reset the session count.
-  The tab title shows the countdown while it runs.
-- **Calendar**: month view with today highlighted; click a day (or use arrow keys / PageUp / PageDown) to see and
-  add events with an optional time. Days with events get a dot. Click the month name to jump back to today.
-  Events are stored locally.
-- **Quick links**: a compact row at the top of the bookmarks page. Pin a bookmark with the ☆ on its tile (★ when
-  pinned; it keeps the bookmark's current name), or add your own link with "+ Add" (`example.com` is fine, the
-  name is optional). Remove with ×, reorder by dragging. Links you added also show up in palette search.
-- **Read later**: right-click any page and choose *Add page to Read Later*, or right-click a link and choose
-  *Add link to Read Later* (saves it without opening it). A silent notification confirms; duplicates and non-web
-  pages are skipped. The list sits beside the bookmarks on the second page (below them on narrow windows); the
-  `R` key and the `later` command jump there. Click to open (`Ctrl`-click: new tab), ✓ marks as
-  read and removes it. Uses the `contextMenus` and `activeTab` permissions (no install warnings).
-- **Custom background**: open Appearance (`B`) to upload an image or video (up to 500 MB, kept in
-  the extension's IndexedDB) or paste an image/video URL. Videos play muted on a loop and pause in background tabs.
-  A dim slider keeps text readable; "Reset to default" removes it.
+---
 
-## Credits
-The clock uses [Space Grotesk](https://github.com/floriankarsten/space-grotesk) Bold, bundled in `fonts/`
-under the SIL Open Font License (`fonts/OFL.txt`).
+## Privacy and permissions
 
-## Install
-1. Open `chrome://extensions`
-2. Turn on **Developer mode**
-3. Click **Load unpacked** and select this folder
-4. Open a new tab
+Hearth has **no account, no analytics and no tracking**. Your bookmarks, to-dos, notes, events, quick links,
+read later list and settings are stored **locally** in your browser (`chrome.storage.local`, and IndexedDB for
+an uploaded wallpaper). Nothing is synced to a server.
 
-Opening `newtab.html` outside the extension shows sample bookmarks for previewing.
+Hearth only contacts these services, and only for the feature you use:
+
+| Service | When | What is sent |
+|---|---|---|
+| [Open-Meteo](https://open-meteo.com) | weather, once you pick a city (cached 30 min) | the city's coordinates, or the name you search for |
+| [DummyJSON](https://dummyjson.com) | daily quote, once a day (off = never) | nothing but the request |
+| your search engine / ChatGPT / Claude / other sites | only when you open them | what you typed, as a normal visit |
+| a wallpaper link you paste | when the background loads | a normal request for that image or video |
+
+| Permission | Why |
+|---|---|
+| `bookmarks` | show and search your bookmarks |
+| `favicon` | show site icons from Chrome's own icon cache |
+| `storage` | keep your to-dos, notes and settings on your computer |
+| `search` | search with *your* default search engine |
+| `alarms`, `notifications` | end pomodoro sessions on time and tell you |
+| `contextMenus`, `activeTab` | the right-click *Add to Read Later*; the page title is read only when you click it |
+
+No location permission is requested. When you add Hearth, Chrome asks you to confirm the parts that affect you:
+replacing the new tab page, reading and changing your bookmarks, and showing notifications.
+
+---
+
+## FAQ
+
+**How do I replace the new tab page in Chrome with Hearth?**
+Load it as shown in [Install](#install); Chrome then opens Hearth on every new tab. To go back, disable or
+remove the extension in `chrome://extensions`.
+
+**Why does the address bar show `chrome-extension://…?focus` instead of being empty?**
+Chrome keeps the cursor in the address bar on new tabs. To put it in Hearth's search box instead, the page
+reloads itself once with `?focus` (see `focus.js`); the visible address is the trade-off.
+
+**Can I use a video as my new tab background?**
+Yes. Open Appearance (`B`), upload an MP4 / WebM video (or paste a link) and adjust the dim slider. Videos play
+muted on a loop, pause when the tab isn't visible, and page transitions stay smooth.
+
+**Does it work offline?**
+Yes — everything except weather and the daily quote, which keep their last result when offline.
+
+**Can I sync my to-dos and notes between computers?**
+Not yet: all data stays on the computer it was created on.
+
+**Does Hearth work in Microsoft Edge, Brave or Arc?**
+It should work in any Chromium browser with Manifest V3 support, but it's developed and tested in Chrome only.
+
+---
+
+## Project structure
+
+| File | Role |
+|---|---|
+| `manifest.json` | extension manifest (Manifest V3) |
+| `newtab.html`, `newtab.css` | the new tab page |
+| `newtab.js` | bookmark grid and folders |
+| `pages.js` | the two pages and their spring transition |
+| `palette.js` | command palette |
+| `dock.js` | status chips and the drawer |
+| `widgets.js` | to-dos and notes |
+| `weather.js`, `calendar.js`, `pomodoro.js`, `pomodoro-core.js` | widgets |
+| `quicklinks.js`, `readlater.js`, `quote.js` | quick links, read later, daily quote |
+| `background.js`, `tone.js`, `layout.js` | wallpaper, text colour over it, clock position |
+| `focus.js`, `storage.js` | autofocus, local storage helper |
+| `sw.js` | service worker: pomodoro alarms and notifications, right-click menu |
+
+Opening `newtab.html` directly in a browser (outside the extension) shows sample bookmarks, which is handy for
+working on the layout.

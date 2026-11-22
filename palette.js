@@ -55,7 +55,9 @@
     if (i > 0) return 55;
     const words = q.split(/\s+/).filter(Boolean);
     if (words.length > 1 && words.every(w => text.includes(w))) return 48;
-    if (q.length >= 3) { // letters in order, e.g. "gthb" → GitHub (short queries would match everything)
+    // letters in order, e.g. "gthb" → GitHub. Only for short names: a short query would match
+    // almost any long title ("git" → "A practical guide to…"), and nothing for 1–2 letters.
+    if (q.length >= 3 && text.length <= q.length * 6) {
       let k = 0;
       for (const ch of text) if (ch === q[k]) k++;
       if (k === q.length) return 22;
