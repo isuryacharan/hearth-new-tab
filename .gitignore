@@ -1,0 +1,14 @@
+# OS / editor clutter
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+
+# Local Claude Code config (preview server, local settings)
+.claude/
+
+# Packed extension builds
+*.crx
+*.pem
+*.zip

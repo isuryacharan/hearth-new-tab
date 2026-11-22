@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>New Tab</title>
+  <link rel="preload" href="fonts/space-grotesk-latin-700.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="newtab.css">
+</head>
+<body>
+  <div id="bg" class="bg" aria-hidden="true"></div>
+  <div id="bg-dim" class="bg-dim" aria-hidden="true"></div>
+
+  <button id="bg-toggle" class="bg-toggle" type="button" aria-label="Background settings" title="Background settings" aria-expanded="false" aria-controls="bg-panel">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 19V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2zM8.5 13.5l2.5 3 3.5-4.5 4.5 6H5l3.5-4.5z"/></svg>
+  </button>
+
+  <section id="bg-panel" class="bg-panel panel" hidden aria-labelledby="bg-title">
+    <div class="panel-head">
+      <h2 id="bg-title">Background</h2>
+      <button id="bg-close" class="icon-btn" type="button" aria-label="Close">×</button>
+    </div>
+
+    <label class="bg-upload">
+      <input id="bg-file" type="file" accept="image/*,video/*">
+      <span>Upload image or video</span>
+    </label>
+
+    <form id="bg-url-form" class="bg-url">
+      <input id="bg-url" type="url" placeholder="…or paste an image / video URL" autocomplete="off">
+      <button type="submit" class="chip">Apply</button>
+    </form>
+
+    <label class="bg-dim-row">
+      <span>Dim</span>
+      <input id="bg-dim-range" type="range" min="0" max="80" step="5" value="25">
+      <span id="bg-dim-value" class="muted">25%</span>
+    </label>
+
+    <p id="bg-status" class="muted bg-status"></p>
+    <button id="bg-reset" class="link-btn" type="button">Reset to default</button>
+  </section>
+
+  <main class="wrap">
+    <header class="top">
+      <div class="clock">
+        <div id="time" class="time"></div>
+        <div id="date" class="date"></div>
+      </div>
+      <input id="search" class="search" type="search" placeholder="Search bookmarks  ( / )" autocomplete="off" spellcheck="false">
+    </header>
+
+    <div class="layout">
+      <div class="bookmarks">
+        <nav id="crumbs" class="crumbs" aria-label="Folder path"></nav>
+        <section id="grid" class="grid" aria-live="polite"></section>
+        <p id="empty" class="empty" hidden></p>
+      </div>
+
+      <aside class="side">
+        <section class="panel weather" aria-labelledby="weather-title">
+          <div class="panel-head">
+            <h2 id="weather-title">Weather</h2>
+            <div class="weather-actions">
+              <button id="weather-unit" class="chip" type="button" title="Switch units">°C</button>
+              <button id="weather-settings" class="icon-btn" type="button" title="Change city" aria-label="Change city" aria-expanded="false">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <form id="weather-form" class="weather-form" hidden>
+            <input id="weather-city" type="search" placeholder="Search a city" autocomplete="off">
+            <ul id="weather-results" class="weather-results"></ul>
+          </form>
+
+          <div id="weather-body" class="weather-body">
+            <p class="muted">Loading weather…</p>
+          </div>
+        </section>
+        <section class="panel pomo" aria-labelledby="pomo-title">
+          <div class="panel-head">
+            <h2 id="pomo-title">Pomodoro</h2>
+            <div class="weather-actions">
+              <span id="pomo-dots" class="pomo-dots"></span>
+              <button id="pomo-settings" class="icon-btn" type="button" aria-label="Timer settings" title="Timer settings" aria-expanded="false">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.4 13a7.5 7.5 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.6 7.6 0 0 0-1.7-1L15 3h-4l-.3 2.9a7.6 7.6 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.5 7.5 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1a7.6 7.6 0 0 0 1.7 1L11 21h4l.3-2.9a7.6 7.6 0 0 0 1.7-1l2.5 1 2-3.5L19.4 13zM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z" transform="translate(-1 0)"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <form id="pomo-form" class="pomo-form" hidden>
+            <label>Focus <input id="pomo-focus" type="number" min="1" max="180" required> min</label>
+            <label>Short break <input id="pomo-short" type="number" min="1" max="180" required> min</label>
+            <label>Long break <input id="pomo-long" type="number" min="1" max="180" required> min</label>
+            <label class="pomo-check"><input id="pomo-auto" type="checkbox"> Start the next session automatically</label>
+            <button id="pomo-reset-count" class="link-btn" type="button">Reset session count</button>
+          </form>
+
+          <div class="pomo-modes" role="group" aria-label="Session type">
+            <button type="button" class="chip" data-mode="focus">Focus</button>
+            <button type="button" class="chip" data-mode="short">Short break</button>
+            <button type="button" class="chip" data-mode="long">Long break</button>
+          </div>
+
+          <div id="pomo-time" class="pomo-time" role="timer" aria-live="off">25:00</div>
+          <div class="pomo-bar" aria-hidden="true"><div id="pomo-progress"></div></div>
+
+          <div class="pomo-controls">
+            <button id="pomo-reset" class="icon-btn" type="button" aria-label="Reset timer" title="Reset">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5V2L7 6l5 4V7a5 5 0 1 1-5 5H5a7 7 0 1 0 7-7z"/></svg>
+            </button>
+            <button id="pomo-start" class="pomo-main" type="button">Start</button>
+            <button id="pomo-skip" class="icon-btn" type="button" aria-label="Skip to next session" title="Skip">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5v14l9-7-9-7zm10 0h3v14h-3z"/></svg>
+            </button>
+          </div>
+        </section>
+
+        <section class="panel calendar" aria-labelledby="cal-title">
+          <div class="panel-head">
+            <h2 id="cal-title">Calendar</h2>
+            <div class="cal-nav">
+              <button id="cal-prev" class="icon-btn" type="button" aria-label="Previous month">‹</button>
+              <button id="cal-month" class="cal-month" type="button" title="Back to today"></button>
+              <button id="cal-next" class="icon-btn" type="button" aria-label="Next month">›</button>
+            </div>
+          </div>
+          <div id="cal-weekdays" class="cal-weekdays" aria-hidden="true"></div>
+          <div id="cal-grid" class="cal-grid" role="grid" aria-labelledby="cal-month"></div>
+
+          <div class="cal-day">
+            <div class="cal-day-head">
+              <span id="cal-day-title"></span>
+            </div>
+            <ul id="cal-events" class="cal-events"></ul>
+            <form id="cal-form" class="cal-form">
+              <input id="cal-time" type="time" aria-label="Time (optional)">
+              <input id="cal-text" type="text" placeholder="Add event" autocomplete="off" maxlength="200" aria-label="Event title">
+            </form>
+          </div>
+        </section>
+
+        <section class="panel" aria-labelledby="todo-title">
+          <div class="panel-head">
+            <h2 id="todo-title">To-do</h2>
+            <span id="todo-count" class="muted"></span>
+          </div>
+          <form id="todo-form" class="todo-form">
+            <input id="todo-input" type="text" placeholder="Add a task and press Enter" autocomplete="off" maxlength="300">
+          </form>
+          <ul id="todo-list" class="todo-list"></ul>
+          <button id="todo-clear" class="link-btn" type="button" hidden>Clear completed</button>
+        </section>
+
+        <section class="panel" aria-labelledby="notes-title">
+          <div class="panel-head">
+            <h2 id="notes-title">Notes</h2>
+            <span id="notes-status" class="muted"></span>
+          </div>
+          <textarea id="notes" class="notes" placeholder="Jot something down…" spellcheck="true"></textarea>
+        </section>
+      </aside>
+    </div>
+  </main>
+  <script src="storage.js"></script>
+  <script src="newtab.js"></script>
+  <script src="widgets.js"></script>
+  <script src="weather.js"></script>
+  <script src="calendar.js"></script>
+  <script src="pomodoro-core.js"></script>
+  <script src="pomodoro.js"></script>
+  <script src="background.js"></script>
+</body>
+</html>
