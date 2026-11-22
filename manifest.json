@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Bookmark Grid New Tab",
+  "name": "Hearth",
   "version": "1.0.0",
-  "description": "Replaces the new tab page with a grid of your bookmarks.",
+  "description": "A calm, keyboard-first home for every new tab: command palette, bookmarks, to-dos, read later and more.",
   "permissions": ["bookmarks", "favicon", "storage", "alarms", "notifications", "search", "contextMenus", "activeTab"],
   "background": {
     "service_worker": "sw.js"

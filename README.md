@@ -1,6 +1,10 @@
-# Bookmark Grid New Tab
+# Hearth
 
-A Chrome extension (Manifest V3) that replaces the new tab page with a grid of your bookmarks.
+*A calm, keyboard-first home for every new tab.*
+
+Hearth is a Chrome extension (Manifest V3) that replaces the new tab page: a quiet clock and command palette
+up front, your bookmarks, quick links and read later list one scroll away, and to-dos, a pomodoro timer,
+weather, calendar and notes a keystroke away.
 
 ## Layout
 The new tab has two vertical pages:
