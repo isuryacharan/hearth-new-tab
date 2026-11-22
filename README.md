@@ -5,8 +5,7 @@ A Chrome extension (Manifest V3) that replaces the new tab page with a grid of y
 ## Layout
 The new tab has two vertical pages:
 
-1. **Home**: only the clock and a search box. Typing shows matching bookmarks right below it
-   (`Enter` opens the first one, `Esc` clears).
+1. **Home**: only the clock and the command palette (see below).
 2. **Bookmarks**: the full grid with folders. Scroll down, click "Bookmarks ⌄", or press `↓` / `PageDown` /
    `Space` to get there; scroll up from the top, press `↑` / `PageUp`, or `/` to return. Reopening a folder lands here.
 
@@ -16,6 +15,30 @@ a mouse-wheel notch flips the page. As you go down, the clock drifts up, shrinks
 zooms and dims slightly, and the tiles rise in a staggered diagonal wave. With *reduce motion* turned on in the
 OS, pages switch instantly.
 
+## Command palette
+The box on the home page does more than search bookmarks. It has the cursor when a new tab opens, so you can
+start typing right away; `/` or `Ctrl+K` brings you back to it from anywhere.
+
+Chrome normally keeps the cursor in the address bar on new tabs, so the page reloads itself once with `?focus`
+(see `focus.js`) to take it. The trade-off: the address bar shows the extension's address instead of being empty.
+
+| Type | Does |
+|------|------|
+| `todo buy milk` (or `t …`) | adds a to-do |
+| `note call the bank` (or `n …`) | appends a line to your notes |
+| `event fri 2pm dentist` | adds a calendar event — `today`/`tomorrow`/weekday and `14:30`/`2pm` are optional |
+| `focus`, `break`, `long break`, `pause`, `reset`, `skip` | controls the pomodoro timer |
+| `weather`, `city`, `units`, `calendar`, `todos`, `notes`, `background` | opens that widget (or changes the city / °C–°F) |
+| `bookmarks` | goes to the bookmarks page |
+| `12*4.5`, `=2^10` | calculates; `Enter` copies the result |
+| `github.com`, `localhost:3000` | opens the address |
+| anything | matching bookmarks and folders, plus a web search with your default search engine |
+| `?` | lists every command |
+
+`↑`/`↓` choose · `Enter` run · `Ctrl+Enter` open in a new tab · `Tab` complete a command · `Esc` clears, then leaves.
+`↓` in the empty box goes to the bookmarks page.
+
+## Dock
 Everything else sits in a small **dock** of status chips at the top right, visible on both pages.
 Each chip shows live information at a glance:
 
@@ -38,7 +61,7 @@ instead of over them.
 - Bookmarks bar contents shown as icon tiles; "Other bookmarks" / "Mobile bookmarks" appear as folders
 - Click a folder to open it; breadcrumb trail to go back (browser Back and `Backspace` also work)
 - Site favicons via Chrome's `_favicon` API, with a colored letter fallback
-- Search across all bookmarks from the home page (`/` to focus from anywhere, `Enter` opens the first result, `Esc` clears)
+- Search across all bookmarks and folders from the command palette
 - Updates live when bookmarks change; light and dark themes follow the system
 - **To-do list**: add with `Enter`, tick to complete, double-click to edit, `×` to delete, "Clear completed"
 - **Notes**: a single notepad that autosaves as you type

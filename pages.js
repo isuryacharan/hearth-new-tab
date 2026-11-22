@@ -219,8 +219,8 @@
 
     if (state.mode !== 'drag') {
       if (!onBookmarks) {
-        // Searching on home: let long result lists scroll normally.
-        if (home.classList.contains('searching') && home.scrollHeight > home.clientHeight) return;
+        // While the palette shows results, the wheel scrolls them, never the page.
+        if (home.classList.contains('searching')) return;
         if (delta < 0) return; // nothing above home
       } else {
         // On the bookmarks page, scroll the grid unless we're at its top pulling down.

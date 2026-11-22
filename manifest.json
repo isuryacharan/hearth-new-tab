@@ -3,7 +3,7 @@
   "name": "Bookmark Grid New Tab",
   "version": "1.0.0",
   "description": "Replaces the new tab page with a grid of your bookmarks.",
-  "permissions": ["bookmarks", "favicon", "storage", "alarms", "notifications"],
+  "permissions": ["bookmarks", "favicon", "storage", "alarms", "notifications", "search"],
   "background": {
     "service_worker": "sw.js"
   },

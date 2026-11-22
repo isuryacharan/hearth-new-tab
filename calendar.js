@@ -185,22 +185,29 @@
     render();
   }
 
+  function addEvent(date, time, title) {
+    const key = keyOf(startOfDay(date));
+    (events[key] = events[key] || []).push({
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      time: time || '',
+      title,
+    });
+    save();
+    render();
+  }
+
   els.form.addEventListener('submit', e => {
     e.preventDefault();
     const title = els.text.value.trim();
     if (!title) return;
-    const key = keyOf(selected);
-    (events[key] = events[key] || []).push({
-      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-      time: els.time.value || '',
-      title,
-    });
+    addEvent(selected, els.time.value, title);
     els.text.value = '';
     els.time.value = '';
-    save();
-    render();
     els.text.focus();
   });
+
+  // Action for the command palette: add an event on a given day (time 'HH:MM' or '' for all day).
+  window.Calendar = { add: addEvent, formatTime };
   // Enter in the time field submits too
   els.time.addEventListener('keydown', e => {
     if (e.key === 'Enter') { e.preventDefault(); els.form.requestSubmit(); }

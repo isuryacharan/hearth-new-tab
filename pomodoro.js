@@ -95,6 +95,18 @@
   els.start.addEventListener('click', () => save(state.running ? Pomo.pause(state) : Pomo.start(state)));
   els.reset.addEventListener('click', () => save(Pomo.reset(state)));
   els.skip.addEventListener('click', () => save(Pomo.advance(state, { finished: false })));
+
+  // Actions for the command palette.
+  window.Pomodoro = {
+    /** Start a fresh session of the given type ('focus' | 'short' | 'long'). */
+    start: mode => save(Pomo.start(Pomo.setMode(state, mode))),
+    /** Pause if running, otherwise start/resume. Returns true if it is now running. */
+    toggle: async () => { await save(state.running ? Pomo.pause(state) : Pomo.start(state)); return state.running; },
+    reset: () => save(Pomo.reset(state)),
+    skip: () => save(Pomo.advance(state, { finished: false })),
+    status: () => ({ ...state, left: Pomo.format(Pomo.remaining(state)), label: Pomo.LABELS[state.mode] }),
+    durations: () => state.durations,
+  };
   els.modes.forEach(b => b.addEventListener('click', () => {
     if (b.dataset.mode !== state.mode) save(Pomo.setMode(state, b.dataset.mode));
   }));

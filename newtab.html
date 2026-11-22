@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>New Tab</title>
+  <script src="focus.js"></script>
   <link rel="preload" href="fonts/space-grotesk-latin-700.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="newtab.css">
 </head>
@@ -67,9 +68,20 @@
             <div id="date-ghost" class="date"></div>
           </div>
         </div>
-        <input id="search" class="search" type="search" placeholder="Search bookmarks  ( / )" autocomplete="off" spellcheck="false">
-        <div id="results" class="grid results" aria-live="polite" hidden></div>
-        <p id="results-empty" class="empty results-empty" hidden></p>
+        <div class="palette">
+          <input id="search" class="search" type="search" placeholder="Search, run a command, or type a URL   ( / )" autocomplete="off" spellcheck="false" aria-label="Command palette" autofocus>
+          <div class="palette-drop">
+            <div id="palette-list" class="palette-list" role="listbox" aria-label="Results" hidden></div>
+            <div id="palette-footer" class="palette-footer" hidden>
+              <span><kbd>↑</kbd><kbd>↓</kbd> choose</span>
+              <span><kbd>↵</kbd> run</span>
+              <span><kbd>Ctrl</kbd><kbd>↵</kbd> new tab</span>
+              <span><kbd>Tab</kbd> complete</span>
+              <span><kbd>?</kbd> commands</span>
+            </div>
+          </div>
+          <p id="palette-toast" class="palette-toast" role="status" aria-live="polite"></p>
+        </div>
       </div>
       <button id="to-bookmarks" class="page-hint" type="button" aria-label="Show all bookmarks">
         <span>Bookmarks</span>
@@ -239,5 +251,6 @@
   <script src="pomodoro-core.js"></script>
   <script src="pomodoro.js"></script>
   <script src="background.js"></script>
+  <script src="palette.js"></script>
 </body>
 </html>

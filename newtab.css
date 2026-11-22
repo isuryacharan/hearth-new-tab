@@ -104,18 +104,144 @@ html, body { height: 100%; overflow: hidden; }
 }
 .home-inner {
   position: relative;
-  top: -6vh; /* the clock sits a little above center while idle */
+  top: -9vh; /* the clock sits a little above center, leaving room for results below */
   margin: auto;
   width: min(760px, 100%);
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 28px;
-  transition: top 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
-.home.searching .home-inner { top: 0; }
-.results { width: 100%; }
-.home .results-empty { margin: -8px 0 0; }
+/* ---------- command palette ---------- */
+
+.palette { position: relative; width: min(620px, 100%); }
+.palette .search { width: 100%; }
+.palette .search::-webkit-search-cancel-button { display: none; } /* Esc clears; no stray × */
+
+/*
+ * Results float below the box instead of taking space, so nothing on the page moves when you
+ * start typing; they fade/slide in using only opacity + transform (compositor-only).
+ */
+.palette-drop {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  right: 0;
+  z-index: 2;
+}
+.palette-list:not([hidden]),
+.palette-footer:not([hidden]) { animation: palette-in 0.18s cubic-bezier(0.2, 0.8, 0.2, 1); }
+@keyframes palette-in {
+  from { opacity: 0; transform: translate3d(0, -6px, 0) scale(0.985); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .palette-list:not([hidden]), .palette-footer:not([hidden]) { animation: none; }
+}
+.palette-list {
+  max-height: min(40vh, 440px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 6px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: var(--tile);
+  box-shadow: var(--shadow-hover);
+  text-align: left;
+}
+body.has-bg .palette-list { background: color-mix(in srgb, var(--tile) 88%, transparent); backdrop-filter: blur(18px); }
+
+.pal-section {
+  padding: 10px 10px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.pal-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+.pal-row.active { background: color-mix(in srgb, var(--accent) 16%, transparent); }
+.pal-icon {
+  width: 28px;
+  height: 28px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--muted);
+}
+.pal-icon svg { width: 16px; height: 16px; fill: currentColor; }
+.pal-row.active .pal-icon { color: var(--accent); }
+.pal-icon.folder svg { fill: var(--folder); }
+.pal-icon .icon { width: 28px; height: 28px; border-radius: 8px; }
+.pal-icon .icon img { width: 18px; height: 18px; }
+.pal-icon .icon.letter { font-size: 13px; }
+.pal-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.pal-title, .pal-sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pal-title { font-size: 14px; }
+.pal-sub { font-size: 12px; color: var(--muted); }
+.pal-sub:empty { display: none; }
+.pal-hint {
+  flex: none;
+  font-size: 12px;
+  color: var(--muted);
+  visibility: hidden;
+}
+.pal-row.active .pal-hint { visibility: visible; }
+
+.palette-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 16px;
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.palette-footer[hidden] { display: none; }
+kbd {
+  display: inline-block;
+  min-width: 18px;
+  margin-right: 3px;
+  padding: 1px 5px;
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  background: var(--tile);
+  color: var(--text);
+  font: inherit;
+  font-size: 11px;
+  text-align: center;
+}
+body.has-bg .palette-footer { color: rgba(255, 255, 255, 0.85); text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5); }
+
+.palette-toast {
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 10px);
+  margin: 0;
+  transform: translate(-50%, -4px);
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: var(--text);
+  color: var(--bg);
+  font-size: 13px;
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s, transform 0.2s;
+}
+.palette-toast.show { opacity: 1; transform: translate(-50%, 0); }
 
 /* Bookmarks rise in from below; tiles follow in a staggered diagonal wave (--i set per tile). */
 .bookmarks-layer {

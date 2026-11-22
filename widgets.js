@@ -90,14 +90,18 @@
     renderTodos();
   }
 
+  function addTodo(text) {
+    todos.unshift({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), text, done: false });
+    saveTodos();
+    renderTodos();
+  }
+
   todoEls.form.addEventListener('submit', e => {
     e.preventDefault();
     const text = todoEls.input.value.trim();
     if (!text) return;
-    todos.unshift({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), text, done: false });
     todoEls.input.value = '';
-    saveTodos();
-    renderTodos();
+    addTodo(text);
   });
 
   todoEls.clear.addEventListener('click', () => {
@@ -116,6 +120,16 @@
     const first = notesEl.value.split('\n').map(s => s.trim()).find(Boolean);
     window.Dock?.setStatus('notes', { title: first ? (first.length > 60 ? first.slice(0, 60) + '…' : first) : 'Empty' });
   }
+
+  async function appendNote(text) {
+    notesEl.value = notesEl.value.replace(/\s*$/, '') ? `${notesEl.value.replace(/\s*$/, '')}\n${text}` : text;
+    await store.set('notes', notesEl.value);
+    reportNotes();
+  }
+
+  // Actions for the command palette.
+  window.Todos = { add: addTodo, openCount: () => todos.filter(t => !t.done).length };
+  window.Notes = { append: appendNote };
 
   notesEl.addEventListener('input', () => {
     notesStatus.textContent = 'Saving…';

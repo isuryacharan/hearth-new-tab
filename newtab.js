@@ -3,15 +3,11 @@
 const ROOT = 'root';
 const hasBookmarksApi = typeof chrome !== 'undefined' && chrome.bookmarks;
 
-const MAX_RESULTS = 18;
-
 const els = {
   grid: document.getElementById('grid'),
   crumbs: document.getElementById('crumbs'),
   search: document.getElementById('search'),
   empty: document.getElementById('empty'),
-  results: document.getElementById('results'),
-  resultsEmpty: document.getElementById('results-empty'),
   hint: document.getElementById('to-bookmarks'),
   bookmarksPage: document.getElementById('page-bookmarks'),
   homePage: document.getElementById('page-home'),
@@ -22,6 +18,7 @@ const els = {
 let tree = null;          // virtual root node
 let byId = new Map();     // id -> { node, parent }
 let allLinks = [];        // flattened { node, path }
+let allFolders = [];      // flattened { node, path } (excluding the top level)
 
 /* ---------- data ---------- */
 
@@ -40,12 +37,14 @@ async function loadTree() {
 
   byId = new Map();
   allLinks = [];
+  allFolders = [];
   const walk = (node, parent, path) => {
     byId.set(node.id, { node, parent });
     for (const child of node.children || []) {
       if (child.url) {
         allLinks.push({ node: child, path });
       } else {
+        allFolders.push({ node: child, path });
         walk(child, node, [...path, child.title || 'Untitled']);
       }
     }
@@ -63,7 +62,6 @@ function currentFolderId() {
 
 function render() {
   renderFolder();
-  renderSearch();
 }
 
 /* Page 2: the current folder. */
@@ -92,29 +90,6 @@ function staggerTiles() {
   });
 }
 window.addEventListener('resize', () => requestAnimationFrame(staggerTiles));
-
-/* Page 1: search results appear right under the search box. */
-function renderSearch() {
-  const raw = els.search.value.trim();
-  const q = raw.toLowerCase();
-  els.homePage.classList.toggle('searching', !!q);
-  if (!q) {
-    els.results.hidden = true;
-    els.resultsEmpty.hidden = true;
-    els.results.replaceChildren();
-    return;
-  }
-  const matches = allLinks.filter(({ node }) =>
-    (node.title || '').toLowerCase().includes(q) || node.url.toLowerCase().includes(q));
-  const tiles = matches.slice(0, MAX_RESULTS)
-    .map(({ node, path }) => linkTile(node, path.join(' / ') || 'Bookmarks'));
-  els.results.replaceChildren(...tiles);
-  els.results.hidden = !tiles.length;
-  els.resultsEmpty.hidden = tiles.length > 0 && matches.length <= MAX_RESULTS;
-  els.resultsEmpty.textContent = tiles.length
-    ? `+${matches.length - MAX_RESULTS} more — keep typing to narrow it down`
-    : `No bookmarks match "${raw}".`;
-}
 
 function renderCrumbs(folderId) {
   const chain = [];
@@ -247,20 +222,6 @@ window.addEventListener('hashchange', () => {
   els.bookmarksPage.scrollTop = 0;
   if (currentFolderId() !== ROOT) Pages.go('bookmarks'); // e.g. browser Back into a folder
 });
-els.search.addEventListener('input', renderSearch);
-els.search.addEventListener('keydown', e => {
-  if (e.key === 'Escape') { els.search.value = ''; renderSearch(); els.search.blur(); }
-  if (e.key === 'Enter') {
-    const first = els.results.querySelector('.tile');
-    if (first) first.click();
-  }
-  // Down arrow from an empty search goes to the bookmarks page.
-  if (e.key === 'ArrowDown' && !els.search.value) {
-    e.preventDefault();
-    els.search.blur();
-    Pages.go('bookmarks');
-  }
-});
 els.hint.addEventListener('click', () => Pages.go('bookmarks'));
 
 document.addEventListener('keydown', e => {
@@ -283,6 +244,17 @@ if (hasBookmarksApi) {
     chrome.bookmarks[ev] && chrome.bookmarks[ev].addListener(refresh);
   }
 }
+
+/* Bookmark data for the command palette (palette.js). */
+window.BookmarkIndex = {
+  links: () => allLinks,
+  folders: () => allFolders,
+  icon: bm => faviconEl(bm),
+  openFolder(id) {
+    openFolder(id);
+    Pages.go('bookmarks');
+  },
+};
 
 tick();
 setInterval(tick, 1000);
