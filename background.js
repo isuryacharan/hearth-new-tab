@@ -115,7 +115,11 @@
   function setActive(on) {
     document.body.classList.toggle('has-bg', on);
     els.dim.style.opacity = on ? settings.dim / 100 : 0;
+    changed();
   }
+
+  // Tell tone.js the wallpaper or its dimming changed, so text over it can re-pick its colour.
+  const changed = () => window.dispatchEvent(new Event('backdrop-change'));
 
   function describe() {
     const what = settings.kind === 'video' ? 'video' : 'image';
@@ -163,7 +167,7 @@
   els.dimRange.addEventListener('input', () => {
     settings.dim = +els.dimRange.value;
     els.dimValue.textContent = `${settings.dim}%`;
-    if (document.body.classList.contains('has-bg')) els.dim.style.opacity = settings.dim / 100;
+    if (document.body.classList.contains('has-bg')) { els.dim.style.opacity = settings.dim / 100; changed(); }
   });
   els.dimRange.addEventListener('change', () => store.set('bgSettings', settings));
 
@@ -191,7 +195,7 @@
       else {
         els.dimRange.value = settings.dim;
         els.dimValue.textContent = `${settings.dim}%`;
-        if (document.body.classList.contains('has-bg')) els.dim.style.opacity = settings.dim / 100;
+        if (document.body.classList.contains('has-bg')) { els.dim.style.opacity = settings.dim / 100; changed(); }
       }
     });
   }

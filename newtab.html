@@ -86,6 +86,7 @@
           <p id="palette-toast" class="palette-toast" role="status" aria-live="polite"></p>
         </div>
       </div>
+      <ul id="todo-glance" class="todo-glance" aria-label="Open to-dos" hidden></ul>
       <figure id="quote" class="quote" hidden>
         <blockquote id="quote-text"></blockquote>
         <figcaption id="quote-author"></figcaption>
@@ -217,13 +218,18 @@
     <section class="panel" data-panel="todo" data-title="To-do" aria-labelledby="todo-title" hidden>
       <div class="panel-head">
         <h2 id="todo-title">To-do</h2>
-        <span id="todo-count" class="muted"></span>
+        <div class="todo-head-actions">
+          <button id="todo-sort" class="link-btn" type="button" hidden>Sort by priority</button>
+          <span id="todo-count" class="muted"></span>
+        </div>
       </div>
       <form id="todo-form" class="todo-form">
-        <input id="todo-input" type="text" placeholder="Add a task and press Enter" autocomplete="off" maxlength="300">
+        <input id="todo-input" type="text" placeholder="Add a task — end with !1 !2 !3 for priority" autocomplete="off" maxlength="300" aria-describedby="todo-hint">
       </form>
       <ul id="todo-list" class="todo-list"></ul>
       <button id="todo-clear" class="link-btn" type="button" hidden>Clear completed</button>
+      <p id="todo-hint" class="sr-only">Type !1, !2 or !3 (or !high, !med, !low) to set priority. Drag the grip or focus it and use the arrow keys to reorder.</p>
+      <p id="todo-live" class="sr-only" aria-live="polite"></p>
     </section>
 
     <section class="panel notes-panel" data-panel="notes" data-title="Notes" aria-labelledby="notes-title" hidden>
@@ -270,6 +276,7 @@
   <script src="calendar.js"></script>
   <script src="pomodoro-core.js"></script>
   <script src="pomodoro.js"></script>
+  <script src="tone.js"></script>
   <script src="background.js"></script>
   <script src="readlater.js"></script>
   <script src="palette.js"></script>

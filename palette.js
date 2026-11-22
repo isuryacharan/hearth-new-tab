@@ -157,9 +157,19 @@
   const COMMANDS = [
     // commands that take text
     {
-      keywords: ['todo', 'task', 't'], title: 'Add to-do', icon: () => dockIcon('todo'), arg: 'buy milk',
-      preview: arg => ({ title: `Add to-do: ${arg}`, subtitle: 'To-do list' }),
-      run: arg => { Todos.add(arg); return `Added ${quote(arg)} to your to-do list`; },
+      keywords: ['todo', 'task', 't'], title: 'Add to-do', icon: () => dockIcon('todo'), arg: 'buy milk !1',
+      preview: arg => {
+        const { text, priority } = Todos.parse(arg); // "!1" / "!high" etc. set priority
+        return {
+          title: `Add to-do: ${text || '…'}`,
+          subtitle: priority ? `${Todos.priorityLabel(priority)} priority · To-do list` : 'To-do list · end with !1 !2 !3 for priority',
+        };
+      },
+      run: arg => {
+        const todo = Todos.add(arg);
+        if (!todo) return null;
+        return `Added ${quote(todo.text)}${todo.priority ? ` (${Todos.priorityLabel(todo.priority).toLowerCase()} priority)` : ''}`;
+      },
     },
     {
       keywords: ['note', 'n'], title: 'Add to notes', icon: () => dockIcon('notes'), arg: 'call the bank',

@@ -80,9 +80,13 @@
 
   /* ---------- drawer ---------- */
 
+  let justOpened = false; // the click that opens the drawer must not also close it (see below)
+
   function open(id, { focus = true } = {}) {
     if (!panels[id]) return;
     current = id;
+    justOpened = true;
+    setTimeout(() => { justOpened = false; });
     for (const [key, panel] of Object.entries(panels)) panel.hidden = key !== id;
     for (const chip of chips) chip.setAttribute('aria-expanded', String(chip.dataset.panel === id));
     for (const tab of tabsEl.children) tab.setAttribute('aria-selected', String(tab.dataset.panel === id));
@@ -129,7 +133,8 @@
   // Click outside closes an unpinned drawer. composedPath() still holds elements
   // a widget removed while handling the click (e.g. a deleted to-do).
   document.addEventListener('click', e => {
-    if (!current || prefs.pinned) return;
+    // Ignore the very click that opened it from elsewhere (e.g. a to-do in the corner, a palette row).
+    if (!current || prefs.pinned || justOpened) return;
     const path = e.composedPath();
     if (path.includes(drawer) || path.includes(dock)) return;
     close();

@@ -27,7 +27,7 @@ Chrome normally keeps the cursor in the address bar on new tabs, so the page rel
 
 | Type | Does |
 |------|------|
-| `todo buy milk` (or `t …`) | adds a to-do |
+| `todo buy milk` (or `t …`) | adds a to-do; `todo pay rent !1` adds it with high priority |
 | `note call the bank` (or `n …`) | appends a line to your notes |
 | `event fri 2pm dentist` | adds a calendar event — `today`/`tomorrow`/weekday and `14:30`/`2pm` are optional |
 | `focus`, `break`, `long break`, `pause`, `reset`, `skip` | controls the pomodoro timer |
@@ -86,6 +86,15 @@ instead of over them.
 - Search across all bookmarks and folders from the command palette
 - Updates live when bookmarks change; light and dark themes follow the system
 - **To-do list**: add with `Enter`, tick to complete, double-click to edit, `×` to delete, "Clear completed"
+  - **Priority**: end a task with `!1` / `!2` / `!3` (or `!high` / `!med` / `!low`) when adding or editing, or click
+    its dot to cycle High (red) → Medium (amber) → Low (blue) → none. "Sort by priority" orders the list once
+    (completed tasks last); otherwise your own order is kept.
+  - **Reorder**: drag a task by its grip, or focus the grip and press `↑` / `↓`.
+- **To-dos at a glance**: up to 3 open to-dos (highest priority first, circles in priority colours) sit right under the dock, very faint until you hover ("+N more"
+  beyond that, nothing when all is done; hidden while the drawer is open). Tick one off with its circle; click a
+  task to open the full list.
+  Over a wallpaper the text colour follows the image behind it (`tone.js` samples it, accounting for the dim
+  slider, and picks dark or light text by WCAG contrast; videos are re-checked every 2 s)
 - **Notes**: a single notepad that autosaves as you type
 - To-dos and notes are stored locally in `chrome.storage.local` and stay in sync across open tabs
 - **Weather**: current conditions and a 5-day forecast from [Open-Meteo](https://open-meteo.com) (free, no API key).

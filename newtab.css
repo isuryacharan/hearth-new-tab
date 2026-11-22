@@ -328,6 +328,99 @@ body.has-bg .palette-footer { color: rgba(255, 255, 255, 0.85); text-shadow: 0 1
 }
 body:not(.has-bg) .bg-depth { display: none; }
 
+/*
+ * To-dos at a glance, right under the dock (top right), right-aligned to it. Very faint at rest
+ * so it never competes with the clock; hovering the list brings it up to readable, the task
+ * under the pointer to full contrast. Text colour follows the theme, or — over a wallpaper — the
+ * brightness of the wallpaper right behind it (tone.js sets data-tone="dark" | "light").
+ */
+.todo-glance {
+  --fade: clamp(0, calc(1 - var(--p) * 1.9), 1); /* leaves with the home page */
+  position: absolute;
+  top: 68px;
+  right: 24px;
+  max-width: min(320px, 40vw);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  font-size: 13px;
+  color: var(--muted);
+  opacity: calc(var(--fade) * 0.55);
+  transition: opacity 0.2s, visibility 0.2s;
+}
+.todo-glance:hover, .todo-glance:focus-within { opacity: var(--fade); }
+.todo-glance[hidden] { display: none; }
+/* out of the way while the drawer is open (the full to-do list is one tab away in it) */
+body.drawer-open .todo-glance { opacity: 0; visibility: hidden; pointer-events: none; }
+
+/* circle on the right, so the circles form a neat column under the dock's edge */
+.glance-item { display: flex; flex-direction: row-reverse; align-items: center; gap: 9px; min-width: 0; max-width: 100%; }
+.glance-item button, .glance-more {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.glance-text {
+  min-width: 0;
+  padding: 3px 0 !important;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: right;
+}
+.glance-tick {
+  flex: none;
+  width: 13px;
+  height: 13px;
+  border: 1.5px solid currentColor !important;
+  border-radius: 50%;
+  opacity: 0.8;
+  transition: background 0.15s, border-color 0.15s, opacity 0.15s;
+}
+.glance-item:hover, .glance-item:focus-within { color: var(--text); }
+/* a priority to-do's circle takes its colour (hover still turns it green: "mark done") */
+.glance-tick.p1 { border-color: var(--prio-1) !important; opacity: 1; }
+.glance-tick.p2 { border-color: var(--prio-2) !important; opacity: 1; }
+.glance-tick.p3 { border-color: var(--prio-3) !important; opacity: 1; }
+.glance-tick:hover, .glance-tick:focus-visible {
+  opacity: 1;
+  border-color: #30a46c !important;
+  background: color-mix(in srgb, #30a46c 25%, transparent);
+}
+.glance-more { padding: 3px 22px 3px 0; font-size: 12px; } /* lines up with the task text */
+.glance-more:hover, .glance-more:focus-visible { color: var(--text); }
+.todo-glance button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.todo-glance .glance-tick:focus-visible { border-radius: 50%; }
+
+/* ticked off: the circle fills, the text strikes through and fades away */
+.glance-item.completing .glance-tick { opacity: 1; border-color: #30a46c !important; background: #30a46c; }
+.glance-item.completing .glance-text { text-decoration: line-through; opacity: 0; transform: translateX(4px); }
+.glance-item .glance-text { transition: color 0.15s, opacity 0.35s ease 0.05s, transform 0.35s ease 0.05s; }
+
+/* over a wallpaper: light text on dark areas, dark text on light areas */
+body.has-bg .todo-glance { color: rgba(255, 255, 255, 0.85); text-shadow: 0 1px 6px rgba(0, 0, 0, 0.55); }
+body.has-bg .todo-glance .glance-item:hover,
+body.has-bg .todo-glance .glance-item:focus-within,
+body.has-bg .todo-glance .glance-more:hover { color: #fff; }
+body.has-bg .todo-glance[data-tone="dark"] { color: rgba(16, 18, 26, 0.85); text-shadow: 0 1px 6px rgba(255, 255, 255, 0.45); }
+body.has-bg .todo-glance[data-tone="dark"] .glance-item:hover,
+body.has-bg .todo-glance[data-tone="dark"] .glance-item:focus-within,
+body.has-bg .todo-glance[data-tone="dark"] .glance-more:hover { color: #000; }
+
+@media (prefers-reduced-motion: reduce) {
+  .glance-item .glance-text { transition: none; }
+}
+@media (max-width: 760px) {
+  .todo-glance { top: 66px; right: 16px; max-width: calc(100% - 32px); }
+}
+
 /* Quote of the day: quiet, near the bottom of the home page; out of the way while searching. */
 .quote {
   position: absolute;
@@ -796,6 +889,73 @@ body.drawer-open .dock { right: calc(var(--drawer-w) + 24px); }
 }
 .todo-item:hover .todo-del, .todo-del:focus-visible { opacity: 1; }
 .todo-del:hover { color: var(--text); background: var(--border); }
+
+/* priority colours (also used by the at-a-glance circles) */
+:root { --prio-1: #e5484d; --prio-2: #f5a524; --prio-3: #3b82f6; }
+
+.todo-head-actions { display: flex; align-items: baseline; gap: 12px; }
+.todo-head-actions .link-btn { margin-top: 0; }
+
+/* grip: drag to reorder; appears on hover, or when focused for ↑ / ↓ */
+.todo-grip {
+  flex: none;
+  width: 14px;
+  height: 20px;
+  margin-left: -2px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: var(--muted);
+  cursor: grab;
+  opacity: 0;
+}
+.todo-grip svg { width: 8px; height: 13px; fill: currentColor; }
+.todo-item:hover .todo-grip, .todo-grip:focus-visible { opacity: 1; }
+.todo-grip:active { cursor: grabbing; }
+.todo-grip:focus-visible { outline: 2px solid var(--accent); }
+
+/* priority dot: coloured when set; an empty ring on hover when not */
+.todo-prio {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  margin-top: 5px;
+  padding: 0;
+  border: 1.5px solid var(--muted);
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+  opacity: 0;
+  transition: transform 0.1s;
+}
+.todo-item:hover .todo-prio, .todo-prio:focus-visible { opacity: 0.7; }
+.todo-prio:hover { transform: scale(1.25); }
+.todo-prio:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.todo-prio.p1, .todo-prio.p2, .todo-prio.p3 { opacity: 1; }
+.todo-prio.p1 { background: var(--prio-1); border-color: var(--prio-1); }
+.todo-prio.p2 { background: var(--prio-2); border-color: var(--prio-2); }
+.todo-prio.p3 { background: var(--prio-3); border-color: var(--prio-3); }
+.todo-item.done .todo-prio.p1, .todo-item.done .todo-prio.p2, .todo-item.done .todo-prio.p3 { opacity: 0.35; }
+
+/* dragging: the row dims; a line shows where it will land */
+.todo-item.dragging { opacity: 0.4; }
+.todo-item.drop-before { box-shadow: inset 0 2px 0 var(--accent); }
+.todo-item.drop-after { box-shadow: inset 0 -2px 0 var(--accent); }
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
 
 .link-btn {
   margin-top: 8px;
