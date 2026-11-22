@@ -23,6 +23,7 @@ It works with an image or **video wallpaper**, keeps all your data on your compu
 - [Privacy and permissions](#privacy-and-permissions)
 - [FAQ](#faq)
 - [Project structure](#project-structure)
+- [License](#license)
 
 ---
 
@@ -226,3 +227,10 @@ It should work in any Chromium browser with Manifest V3 support, but it's develo
 
 Opening `newtab.html` directly in a browser (outside the extension) shows sample bookmarks, which is handy for
 working on the layout.
+
+---
+
+## License
+
+Hearth is free and open source under the [MIT License](LICENSE). The font bundled in `fonts/` keeps its own
+license (`fonts/OFL.txt`).
