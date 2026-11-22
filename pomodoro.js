@@ -71,6 +71,11 @@
     els.progress.style.width = `${(1 - left / Pomo.full(state)) * 100}%`;
     document.title = state.running ? `${text} · ${Pomo.LABELS[state.mode]}` : baseTitle;
 
+    const started = state.running || state.remaining < Pomo.full(state);
+    window.Dock?.setStatus('pomo', started
+      ? { text, tone: state.running ? state.mode : 'paused', title: `${Pomo.LABELS[state.mode]} ${state.running ? 'running' : 'paused'} · ${text} left` }
+      : { title: `Ready for ${Pomo.LABELS[state.mode].toLowerCase()} (${Pomo.format(Pomo.full(state))})` });
+
     if (state.running && left <= 0) finish();
   }
 

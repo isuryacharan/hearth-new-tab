@@ -24,6 +24,9 @@
     const open = todos.filter(t => !t.done).length;
     todoEls.count.textContent = todos.length ? `${open} left` : '';
     todoEls.clear.hidden = !todos.some(t => t.done);
+    window.Dock?.setStatus('todo', open
+      ? { text: String(open), title: `${open} open task${open === 1 ? '' : 's'}` + (todos.find(t => !t.done) ? ` · next: ${todos.find(t => !t.done).text}` : '') }
+      : { title: todos.length ? 'All done' : 'No tasks' });
   }
 
   function todoItem(todo) {
@@ -109,12 +112,18 @@
   const notesStatus = document.getElementById('notes-status');
   let saveTimer = null;
 
+  function reportNotes() {
+    const first = notesEl.value.split('\n').map(s => s.trim()).find(Boolean);
+    window.Dock?.setStatus('notes', { title: first ? (first.length > 60 ? first.slice(0, 60) + '…' : first) : 'Empty' });
+  }
+
   notesEl.addEventListener('input', () => {
     notesStatus.textContent = 'Saving…';
     clearTimeout(saveTimer);
     saveTimer = setTimeout(async () => {
       await store.set('notes', notesEl.value);
       notesStatus.textContent = 'Saved';
+      reportNotes();
     }, 400);
   });
 
@@ -124,6 +133,7 @@
     todos = await store.get('todos', []);
     notesEl.value = await store.get('notes', '');
     renderTodos();
+    reportNotes();
   })();
 
   if (useChrome) {
@@ -135,6 +145,7 @@
       }
       if (changes.notes && document.activeElement !== notesEl) {
         notesEl.value = changes.notes.newValue || '';
+        reportNotes();
       }
     });
   }

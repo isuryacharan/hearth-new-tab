@@ -138,6 +138,11 @@
       <div class="weather-days">${days}</div>`;
     // place name comes from user input / geocoding, so set it as text
     els.body.querySelector('.weather-place').textContent = place.name;
+    window.Dock?.setStatus('weather', {
+      emoji: now.emoji,
+      text: `${Math.round(c.temperature_2m)}°`,
+      title: `${now.desc}, ${place.name} · ${Math.round(d.temperature_2m_max[0])}° / ${Math.round(d.temperature_2m_min[0])}°`,
+    });
   }
 
   function showError(msg) {
@@ -145,6 +150,7 @@
     p.className = 'weather-error';
     p.textContent = msg;
     els.body.replaceChildren(p);
+    window.Dock?.setStatus('weather', { title: msg });
   }
 
   function renderUnit() {

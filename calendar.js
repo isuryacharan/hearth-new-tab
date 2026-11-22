@@ -76,6 +76,24 @@
     }
     els.grid.replaceChildren(...cells);
     renderDay();
+    reportToday();
+  }
+
+  /* Dock chip: the next event still ahead today, or how many all-day events there are. */
+  function reportToday() {
+    const list = [...(events[keyOf(today)] || [])].sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+    const now = new Date();
+    const hhmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    const next = list.find(e => e.time && e.time >= hhmm);
+    const allDay = list.filter(e => !e.time);
+    const summary = list.map(e => `${e.time ? formatTime(e.time) : 'All day'} ${e.title}`).join(' · ');
+    if (next) {
+      window.Dock?.setStatus('calendar', { text: `${formatTime(next.time)} ${next.title}`, title: `Today: ${summary}` });
+    } else if (allDay.length) {
+      window.Dock?.setStatus('calendar', { text: allDay.length === 1 ? allDay[0].title : `${allDay.length} today`, title: `Today: ${summary}` });
+    } else {
+      window.Dock?.setStatus('calendar', { title: list.length ? `Today: ${summary}` : 'Nothing today' });
+    }
   }
 
   function dayCell(d) {
@@ -210,7 +228,7 @@
   // Roll "today" over at midnight.
   setInterval(() => {
     const now = startOfDay(new Date());
-    if (sameDay(now, today)) return;
+    if (sameDay(now, today)) return reportToday(); // keep "next event" current
     const wasOnToday = sameDay(selected, today);
     today = now;
     if (wasOnToday) select(today); else render();

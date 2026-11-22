@@ -3,11 +3,18 @@
 const ROOT = 'root';
 const hasBookmarksApi = typeof chrome !== 'undefined' && chrome.bookmarks;
 
+const MAX_RESULTS = 18;
+
 const els = {
   grid: document.getElementById('grid'),
   crumbs: document.getElementById('crumbs'),
   search: document.getElementById('search'),
   empty: document.getElementById('empty'),
+  results: document.getElementById('results'),
+  resultsEmpty: document.getElementById('results-empty'),
+  hint: document.getElementById('to-bookmarks'),
+  bookmarksPage: document.getElementById('page-bookmarks'),
+  homePage: document.getElementById('page-home'),
   time: document.getElementById('time'),
   date: document.getElementById('date'),
 };
@@ -55,9 +62,12 @@ function currentFolderId() {
 }
 
 function render() {
-  const q = els.search.value.trim().toLowerCase();
-  if (q) return renderSearch(q);
+  renderFolder();
+  renderSearch();
+}
 
+/* Page 2: the current folder. */
+function renderFolder() {
   const folderId = currentFolderId();
   const folder = byId.get(folderId).node;
   renderCrumbs(folderId);
@@ -65,26 +75,45 @@ function render() {
   const children = folder.children || [];
   const folders = children.filter(c => !c.url);
   const links = children.filter(c => c.url);
-  renderTiles([
-    ...folders.map(f => folderTile(f)),
-    ...links.map(l => linkTile(l)),
-  ], 'This folder is empty.');
-}
-
-function renderSearch(q) {
-  els.crumbs.replaceChildren(crumbText('Search results'));
-  const matches = allLinks.filter(({ node }) =>
-    (node.title || '').toLowerCase().includes(q) || node.url.toLowerCase().includes(q));
-  renderTiles(
-    matches.map(({ node, path }) => linkTile(node, path.join(' / ') || 'Bookmarks')),
-    `No bookmarks match "${els.search.value.trim()}".`
-  );
-}
-
-function renderTiles(tiles, emptyMsg) {
+  const tiles = [...folders.map(f => folderTile(f)), ...links.map(l => linkTile(l))];
   els.grid.replaceChildren(...tiles);
   els.empty.hidden = tiles.length > 0;
-  els.empty.textContent = emptyMsg;
+  els.empty.textContent = 'This folder is empty.';
+  staggerTiles();
+}
+
+/* Each tile's place in the reveal wave: top-left first, rippling diagonally (see --i in CSS). */
+function staggerTiles() {
+  const cols = getComputedStyle(els.grid).gridTemplateColumns.split(' ').filter(Boolean).length || 1;
+  [...els.grid.children].forEach((tile, n) => {
+    const row = Math.floor(n / cols);
+    const col = n % cols;
+    tile.style.setProperty('--i', Math.min(1 + row + col * 0.55, 13).toFixed(2));
+  });
+}
+window.addEventListener('resize', () => requestAnimationFrame(staggerTiles));
+
+/* Page 1: search results appear right under the search box. */
+function renderSearch() {
+  const raw = els.search.value.trim();
+  const q = raw.toLowerCase();
+  els.homePage.classList.toggle('searching', !!q);
+  if (!q) {
+    els.results.hidden = true;
+    els.resultsEmpty.hidden = true;
+    els.results.replaceChildren();
+    return;
+  }
+  const matches = allLinks.filter(({ node }) =>
+    (node.title || '').toLowerCase().includes(q) || node.url.toLowerCase().includes(q));
+  const tiles = matches.slice(0, MAX_RESULTS)
+    .map(({ node, path }) => linkTile(node, path.join(' / ') || 'Bookmarks'));
+  els.results.replaceChildren(...tiles);
+  els.results.hidden = !tiles.length;
+  els.resultsEmpty.hidden = tiles.length > 0 && matches.length <= MAX_RESULTS;
+  els.resultsEmpty.textContent = tiles.length
+    ? `+${matches.length - MAX_RESULTS} more — keep typing to narrow it down`
+    : `No bookmarks match "${raw}".`;
 }
 
 function renderCrumbs(folderId) {
@@ -110,14 +139,6 @@ function renderCrumbs(folderId) {
     parts.push(btn);
   });
   els.crumbs.replaceChildren(...parts);
-}
-
-function crumbText(text) {
-  const btn = document.createElement('button');
-  btn.type = 'button';
-  btn.textContent = text;
-  btn.setAttribute('aria-current', 'page');
-  return btn;
 }
 
 function folderTile(folder) {
@@ -196,9 +217,8 @@ function colorFor(str) {
 }
 
 function openFolder(id) {
-  els.search.value = '';
   location.hash = id === ROOT ? '' : `folder=${encodeURIComponent(id)}`;
-  if (id === ROOT) render(); // empty hash may not fire hashchange
+  if (id === ROOT) renderFolder(); // empty hash may not fire hashchange
 }
 
 /* ---------- clock ---------- */
@@ -216,21 +236,35 @@ async function refresh() {
   render();
 }
 
-window.addEventListener('hashchange', render);
-els.search.addEventListener('input', render);
+window.addEventListener('hashchange', () => {
+  renderFolder();
+  els.bookmarksPage.scrollTop = 0;
+  if (currentFolderId() !== ROOT) Pages.go('bookmarks'); // e.g. browser Back into a folder
+});
+els.search.addEventListener('input', renderSearch);
 els.search.addEventListener('keydown', e => {
-  if (e.key === 'Escape') { els.search.value = ''; render(); els.search.blur(); }
+  if (e.key === 'Escape') { els.search.value = ''; renderSearch(); els.search.blur(); }
   if (e.key === 'Enter') {
-    const first = els.grid.querySelector('.tile');
+    const first = els.results.querySelector('.tile');
     if (first) first.click();
   }
+  // Down arrow from an empty search goes to the bookmarks page.
+  if (e.key === 'ArrowDown' && !els.search.value) {
+    e.preventDefault();
+    els.search.blur();
+    Pages.go('bookmarks');
+  }
 });
+els.hint.addEventListener('click', () => Pages.go('bookmarks'));
+
 document.addEventListener('keydown', e => {
   const t = e.target;
   if (t.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(t.tagName)) return;
+  if (t.closest && t.closest('#drawer, #dock')) return;
   if (e.key === '/') {
     e.preventDefault();
-    els.search.focus();
+    Pages.go('home');
+    els.search.focus({ preventScroll: true });
   }
   if (e.key === 'Backspace' && currentFolderId() !== ROOT) {
     const parent = byId.get(currentFolderId()).parent;
@@ -246,7 +280,10 @@ if (hasBookmarksApi) {
 
 tick();
 setInterval(tick, 1000);
-refresh();
+refresh().then(() => {
+  // Coming back into a folder (reload) lands on the bookmarks page.
+  if (currentFolderId() !== ROOT) Pages.go('bookmarks', { animate: false });
+});
 
 /* ---------- sample data when opened outside the extension ---------- */
 

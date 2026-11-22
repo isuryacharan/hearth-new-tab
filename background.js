@@ -9,9 +9,6 @@
   const els = {
     bg: document.getElementById('bg'),
     dim: document.getElementById('bg-dim'),
-    toggle: document.getElementById('bg-toggle'),
-    panel: document.getElementById('bg-panel'),
-    close: document.getElementById('bg-close'),
     file: document.getElementById('bg-file'),
     urlForm: document.getElementById('bg-url-form'),
     url: document.getElementById('bg-url'),
@@ -134,23 +131,7 @@
     await apply();
   }
 
-  /* ---------- panel ---------- */
-
-  function openPanel() {
-    els.panel.hidden = false;
-    els.toggle.setAttribute('aria-expanded', 'true');
-  }
-  function closePanel() {
-    els.panel.hidden = true;
-    els.toggle.setAttribute('aria-expanded', 'false');
-  }
-
-  els.toggle.addEventListener('click', () => (els.panel.hidden ? openPanel() : closePanel()));
-  els.close.addEventListener('click', closePanel);
-  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !els.panel.hidden) closePanel(); });
-  document.addEventListener('click', e => {
-    if (!els.panel.hidden && !els.panel.contains(e.target) && !els.toggle.contains(e.target)) closePanel();
-  });
+  /* ---------- controls (the panel itself opens in the dock drawer) ---------- */
 
   els.file.addEventListener('change', async () => {
     const file = els.file.files[0];
