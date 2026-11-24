@@ -3,8 +3,10 @@
 /*
  * Quick links: a compact row at the top of the bookmarks page.
  * A quick link is either a pinned bookmark (☆ on a bookmark tile) or a link you add with "+ Add".
- *   link = { id, url, title, bookmarkId? }   — pinned bookmarks keep their bookmark's current name
- * Remove with ×, reorder by dragging. Stored in chrome.storage.local and synced across open tabs.
+ *   link = { id, url, title, bookmarkId?, renamed? }
+ *   — pinned bookmarks show their bookmark's current name, unless you renamed the quick link
+ * Edit with ✎ (same form as "+ Add"), remove with ×, reorder by dragging.
+ * Stored in chrome.storage.local and synced across open tabs.
  */
 (() => {
   const store = window.appStore;
@@ -17,10 +19,12 @@
     name: document.getElementById('quick-name'),
     cancel: document.getElementById('quick-cancel'),
     error: document.getElementById('quick-error'),
+    submit: document.getElementById('quick-submit'),
   };
 
   let links = [];
   let dragId = null;
+  let editingId = null; // the link the form is editing (null: adding a new one)
 
   const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   const hostOf = url => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return url; } };
@@ -38,11 +42,21 @@
     } catch { return null; }
   }
 
-  /* A pinned bookmark shows the bookmark's current name (if it still exists). */
+  /* Compare addresses in their normalized form ("https://github.com" = "github.com/"). */
+  const sameUrl = (a, b) => (normalizeUrl(a) || a) === (normalizeUrl(b) || b);
+
+  /* The current name of a pinned bookmark's bookmark (null if it no longer exists). */
+  function bookmarkName(link) {
+    if (!link.bookmarkId || !window.BookmarkIndex) return null;
+    const bm = BookmarkIndex.links().find(l => l.node.id === link.bookmarkId);
+    return bm ? bm.node.title || hostOf(bm.node.url) : null;
+  }
+
+  /* A pinned bookmark shows the bookmark's current name, unless you renamed it here. */
   function titleOf(link) {
-    if (link.bookmarkId && window.BookmarkIndex) {
-      const bm = BookmarkIndex.links().find(l => l.node.id === link.bookmarkId);
-      if (bm) return bm.node.title || hostOf(bm.node.url);
+    if (!link.renamed) {
+      const name = bookmarkName(link);
+      if (name) return name;
     }
     return link.title || hostOf(link.url);
   }
@@ -92,7 +106,16 @@
       remove.setAttribute('aria-label', `Remove “${titleOf(link)}” from quick links`);
       remove.addEventListener('click', () => removeLink(link.id));
 
-      item.append(a, remove);
+      const edit = document.createElement('button');
+      edit.type = 'button';
+      edit.className = 'quick-edit';
+      edit.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17.25V21h3.75L17.8 9.94l-3.75-3.75zM20.7 7.04a1 1 0 0 0 0-1.41l-2.33-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75z"/></svg>';
+      edit.title = 'Edit';
+      edit.setAttribute('aria-label', `Edit “${titleOf(link)}”`);
+      edit.addEventListener('click', () => openForm(link));
+
+      if (link.id === editingId) item.classList.add('editing');
+      item.append(a, edit, remove);
       return item;
     });
 
@@ -103,33 +126,65 @@
     add.innerHTML = '<span aria-hidden="true">+</span> Add';
     add.title = 'Add a link (or pin a bookmark with ☆)';
     add.setAttribute('aria-label', 'Add a quick link');
-    add.addEventListener('click', openForm);
+    add.addEventListener('click', () => openForm());
     add.hidden = !els.form.hidden;
 
     els.list.replaceChildren(...items, add);
   }
 
-  /* ---------- adding / removing ---------- */
+  /* ---------- adding / editing / removing ---------- */
 
-  function openForm() {
+  /* Opens the form: empty to add a link, or filled in to edit `link`. */
+  function openForm(link = null) {
+    editingId = link ? link.id : null;
     els.form.hidden = false;
     els.error.textContent = '';
-    els.url.value = '';
-    els.name.value = '';
+    els.url.value = link ? link.url : '';
+    els.name.value = link ? titleOf(link) : '';
+    els.submit.textContent = link ? 'Save' : 'Add';
+    els.form.setAttribute('aria-label', link ? `Edit “${titleOf(link)}”` : 'Add a quick link');
     render();
     els.url.focus({ preventScroll: true });
+    if (link) els.url.select();
   }
 
   function closeForm() {
+    const wasEditing = editingId;
+    editingId = null;
     els.form.hidden = true;
     render();
-    els.list.querySelector('.quick-add')?.focus({ preventScroll: true });
+    // put the keyboard back where it came from
+    (wasEditing && els.list.querySelector(`[data-id="${wasEditing}"] .quick-edit`) || els.list.querySelector('.quick-add'))
+      ?.focus({ preventScroll: true });
+  }
+
+  async function update(id, { url, title = '' }) {
+    const link = links.find(l => l.id === id);
+    if (!link) return { error: 'That link no longer exists.' };
+    const normalized = normalizeUrl(url);
+    if (!normalized) return { error: 'That doesn’t look like a web address.' };
+    if (links.some(l => l.id !== id && sameUrl(l.url, normalized))) return { error: 'That link is already in your quick links.' };
+
+    if (!sameUrl(link.url, normalized)) {
+      // a new address makes it your own link, no longer tied to the bookmark it was pinned from
+      link.url = normalized;
+      delete link.bookmarkId;
+      delete link.renamed;
+    }
+    const name = title.trim() || hostOf(normalized);
+    const bmName = bookmarkName(link);
+    if (bmName && name === bmName) { delete link.renamed; link.title = name; } // follows the bookmark again
+    else { link.title = name; if (link.bookmarkId) link.renamed = true; }
+
+    render();
+    await save();
+    return { ok: true };
   }
 
   async function add({ url, title = '', bookmarkId }) {
     const normalized = normalizeUrl(url);
     if (!normalized) return { error: 'That doesn’t look like a web address.' };
-    if (links.some(l => l.url === normalized || (bookmarkId && l.bookmarkId === bookmarkId))) {
+    if (links.some(l => sameUrl(l.url, normalized) || (bookmarkId && l.bookmarkId === bookmarkId))) {
       return { error: 'That link is already in your quick links.' };
     }
     links.push({ id: newId(), url: normalized, title: title.trim() || hostOf(normalized), ...(bookmarkId ? { bookmarkId } : {}) });
@@ -140,13 +195,15 @@
 
   async function removeLink(id) {
     links = links.filter(l => l.id !== id);
+    if (editingId === id) { editingId = null; els.form.hidden = true; }
     render();
     await save();
   }
 
   els.form.addEventListener('submit', async e => {
     e.preventDefault();
-    const res = await add({ url: els.url.value, title: els.name.value });
+    const fields = { url: els.url.value, title: els.name.value };
+    const res = editingId ? await update(editingId, fields) : await add(fields);
     if (res.error) { els.error.textContent = res.error; els.url.focus(); return; }
     closeForm();
   });
@@ -195,10 +252,10 @@
 
   window.QuickLinks = {
     all: () => links.map(l => ({ ...l, title: titleOf(l) })),
-    isPinned: bm => links.some(l => l.bookmarkId === bm.id || l.url === bm.url),
+    isPinned: bm => links.some(l => l.bookmarkId === bm.id || sameUrl(l.url, bm.url)),
     /* Pin a bookmark, or unpin it if it's already there. Returns true if it is now pinned. */
     async toggleBookmark(bm) {
-      const existing = links.find(l => l.bookmarkId === bm.id || l.url === bm.url);
+      const existing = links.find(l => l.bookmarkId === bm.id || sameUrl(l.url, bm.url));
       if (existing) { await removeLink(existing.id); return false; }
       const res = await add({ url: bm.url, title: bm.title, bookmarkId: bm.id });
       return !!res.ok;

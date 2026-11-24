@@ -40,7 +40,8 @@ Instant "Opening…" feedback means one Enter is always enough. [All commands �
 ### Bookmarks, quick links and read later
 - **Bookmark grid** with folders, breadcrumbs and site icons, on a second page below the clock (scroll, click
   "Bookmarks ⌄" or press `↓`). Updates live when your bookmarks change.
-- **Quick links**: pin any bookmark with the ☆ on its tile, or add your own link. Reorder by dragging.
+- **Quick links**: pin any bookmark with the ☆ on its tile, or add your own link. Edit a link's name or address
+  with ✎, remove it with ×, reorder by dragging. (Renaming a pinned bookmark here leaves the bookmark itself alone.)
 - **Read later list**: right-click any page or link → *Add to Read Later*. The list sits beside your
   bookmarks; ✓ marks an article as read.
 

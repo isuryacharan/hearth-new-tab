@@ -1442,6 +1442,32 @@ body.has-bg .quick-title { color: rgba(255, 255, 255, 0.85); text-shadow: 0 1px 
   transition: opacity 0.12s;
 }
 .quick-item:hover .quick-remove, .quick-remove:focus-visible { opacity: 1; }
+
+/* ✎ edit: same round button, just left of the × */
+.quick-edit {
+  position: absolute;
+  top: -7px;
+  right: 16px;
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--tile);
+  color: var(--muted);
+  cursor: pointer;
+  opacity: 0;
+  box-shadow: var(--shadow);
+  transition: opacity 0.12s;
+}
+.quick-edit svg { width: 11px; height: 11px; fill: currentColor; }
+.quick-item:hover .quick-edit, .quick-edit:focus-visible, .quick-item:focus-within .quick-edit,
+.quick-item:focus-within .quick-remove { opacity: 1; }
+.quick-edit:hover { color: var(--text); }
+.quick-edit:focus-visible { outline: 2px solid var(--accent); }
+.quick-item.editing .quick-tile { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 .quick-remove:hover { color: var(--text); }
 .quick-remove:focus-visible { outline: 2px solid var(--accent); }
 
