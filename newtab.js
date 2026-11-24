@@ -19,15 +19,20 @@ let tree = null;          // virtual root node
 let byId = new Map();     // id -> { node, parent }
 let allLinks = [];        // flattened { node, path }
 let allFolders = [];      // flattened { node, path } (excluding the top level)
+let barId = '1';          // Chrome's bookmarks bar: where the top level of the grid really lives
+let rootIds = new Set();  // Chrome's own top folders (bar, other, mobile): can't be edited or moved
+let sampleRoot = null;    // outside the extension: sample bookmarks, kept so edits stick (see bookmarks-manage.js)
 
 /* ---------- data ---------- */
 
 async function loadTree() {
-  const [realRoot] = hasBookmarksApi ? await chrome.bookmarks.getTree() : sampleTree();
+  const [realRoot] = hasBookmarksApi ? await chrome.bookmarks.getTree() : [sampleRoot ||= indexSample(sampleTree()[0])];
   const top = realRoot.children || [];
+  rootIds = new Set(top.map(n => n.id));
   // Chrome ids: "1" bookmarks bar, "2" other bookmarks, "3" mobile bookmarks.
   // Show the bar's contents at the top level, with the other root folders as folder tiles.
   const bar = top.find(n => n.id === '1') || top[0];
+  barId = bar ? bar.id : '1';
   const rest = top.filter(n => n !== bar && n.children && n.children.length);
   tree = {
     id: ROOT,
@@ -74,7 +79,8 @@ function renderFolder() {
   const folders = children.filter(c => !c.url);
   const links = children.filter(c => c.url);
   const tiles = [...folders.map(f => folderTile(f)), ...links.map(l => pinnableTile(l))];
-  els.grid.replaceChildren(...tiles);
+  const addTile = window.BookmarkManage?.addTile(); // "+ Add" at the end (bookmarks-manage.js)
+  els.grid.replaceChildren(...tiles, ...(addTile ? [addTile] : []));
   els.empty.hidden = tiles.length > 0;
   els.empty.textContent = 'This folder is empty.';
   staggerTiles();
@@ -108,6 +114,7 @@ function renderCrumbs(folderId) {
     }
     const btn = document.createElement('button');
     btn.type = 'button';
+    btn.dataset.id = node.id === ROOT ? barId : node.id; // a drop target for moving bookmarks up
     btn.textContent = node.title || 'Untitled';
     if (i === chain.length - 1) btn.setAttribute('aria-current', 'page');
     else btn.addEventListener('click', () => openFolder(node.id));
@@ -129,7 +136,14 @@ function folderTile(folder) {
   icon.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8l-2-2z"/></svg>';
 
   tile.append(icon, label(folder.title || 'Untitled'), sub(`${count} item${count === 1 ? '' : 's'}`));
-  return tile;
+
+  // wrapped like bookmark tiles, so it can carry the ⋯ menu button and be dragged / dropped onto
+  const wrap = document.createElement('div');
+  wrap.className = 'tile-wrap folder-wrap';
+  wrap.dataset.id = folder.id;
+  wrap.append(tile);
+  window.BookmarkManage?.decorate(wrap, folder);
+  return wrap;
 }
 
 /* A bookmark tile with a ☆ in its corner to pin it to (or unpin it from) the quick links row. */
@@ -145,7 +159,9 @@ function pinnableTile(bm) {
     setPinState(pin, bm, pinned);
   });
   setPinState(pin, bm, window.QuickLinks?.isPinned(bm));
+  wrap.dataset.id = bm.id;
   wrap.append(linkTile(bm), pin);
+  window.BookmarkManage?.decorate(wrap, bm);
   return wrap;
 }
 
@@ -291,6 +307,23 @@ window.BookmarkIndex = {
   },
 };
 
+/* What bookmark management (bookmarks-manage.js) needs from the grid. */
+window.BookmarkGrid = {
+  node: id => byId.get(id)?.node || allLinks.find(l => l.node.id === id)?.node || null,
+  /* Chrome folder the grid is showing (the top level is really the bookmarks bar). */
+  currentFolder: () => (currentFolderId() === ROOT ? barId : currentFolderId()),
+  isRoot: id => rootIds.has(id) || id === ROOT,
+  /* every folder you can put things in, with its path, for the "Folder" picker */
+  folders: () => [
+    { id: barId, path: 'Bookmarks bar' },
+    ...allFolders.map(({ node, path }) => ({ id: node.id, path: [...path, node.title || 'Untitled'].join(' › ') })),
+  ],
+  barId: () => barId,
+  refresh,
+  sampleRoot: () => sampleRoot,
+  usingChrome: !!hasBookmarksApi,
+};
+
 tick();
 setInterval(tick, 1000);
 refresh().then(() => {
@@ -299,6 +332,13 @@ refresh().then(() => {
 });
 
 /* ---------- sample data when opened outside the extension ---------- */
+
+/* Give sample nodes the parentId / index fields Chrome's real nodes have. */
+function indexSample(node, parentId) {
+  if (parentId !== undefined) node.parentId = parentId;
+  (node.children || []).forEach((child, i) => { child.index = i; indexSample(child, node.id); });
+  return node;
+}
 
 function sampleTree() {
   let n = 100;
