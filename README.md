@@ -44,6 +44,9 @@ Instant "Opening…" feedback means one Enter is always enough. [All commands �
   edit, rename, move to another folder or delete (it asks first, then offers **Undo**); **drag tiles** to reorder them, drop one onto
   a folder to move it inside, or onto the folder path at the top to move it up. Changes go straight to Chrome's
   bookmarks.
+- **Missing or outdated icons?** Run `refresh icons` in the search box. Chrome only knows a site's icon once
+  the page has been loaded, so Hearth opens each bookmark in a minimized, muted background window, a few at a
+  time, and closes it again once its icon is stored. Progress shows at the bottom, with a Stop button.
 - **Quick links**: pin any bookmark with the ☆ on its tile, or add your own link. Edit a link's name or address
   with ✎, remove it with ×, reorder by dragging. (Renaming a pinned bookmark here leaves the bookmark itself alone.)
 - **Read later list**: right-click any page or link → *Add to Read Later*. The list sits beside your
@@ -118,6 +121,7 @@ Type in the search box on the home page. `?` lists every command.
 | `bookmarks` | goes to the bookmarks page |
 | `later` | jumps to the read later list |
 | `quote` | shows / hides the daily quote |
+| `refresh icons` | reloads Chrome's icon cache by opening each bookmark in a background window |
 | `position top left`, `position bottom`, … | moves the clock and search box (`position` alone opens the picker) |
 | `12*4.5`, `=2^10` | calculates; `Enter` copies the result |
 | `github.com`, `localhost:3000` | opens the address |
@@ -174,6 +178,7 @@ Hearth only contacts these services, and only for the feature you use:
 | [Open-Meteo](https://open-meteo.com) | weather, once you pick a city (cached 30 min) | the city's coordinates, or the name you search for |
 | [DummyJSON](https://dummyjson.com) | daily quote, once a day (off = never) | nothing but the request |
 | your search engine / ChatGPT / Claude / other sites | only when you open them | what you typed, as a normal visit |
+| each bookmarked site | only when you run `refresh icons` | a normal visit to the page (it also appears in your history) |
 | a wallpaper link you paste | when the background loads | a normal request for that image or video |
 
 | Permission | Why |
@@ -232,7 +237,7 @@ It should work in any Chromium browser with Manifest V3 support, but it's develo
 | `quicklinks.js`, `readlater.js`, `quote.js` | quick links, read later, daily quote |
 | `background.js`, `tone.js`, `layout.js` | wallpaper, text colour over it, clock position |
 | `focus.js`, `storage.js` | autofocus, local storage helper |
-| `sw.js` | service worker: pomodoro alarms and notifications, right-click menu |
+| `sw.js` | service worker: pomodoro alarms and notifications, right-click menu, refreshing icons |
 
 Opening `newtab.html` directly in a browser (outside the extension) shows sample bookmarks, which is handy for
 working on the layout.

@@ -1675,6 +1675,45 @@ body.has-bg .tile.add-tile { background: color-mix(in srgb, var(--tile) 35%, tra
   transition: opacity 0.2s, transform 0.2s;
 }
 .bm-toast.show { opacity: 1; transform: translate(-50%, 0); }
+.icons-progress:not([hidden]) ~ .bm-toast { bottom: 80px; } /* both at once: stack them */
+
+/* "refresh icons" progress (newtab.js) */
+.icons-progress {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  max-width: calc(100vw - 32px);
+  padding: 9px 10px 11px 16px;
+  border-radius: 14px;
+  background: var(--text);
+  color: var(--bg);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  transform: translateX(-50%);
+  overflow: hidden;
+  animation: icons-progress-in 0.2s ease-out;
+}
+.icons-progress[hidden] { display: none; }
+@keyframes icons-progress-in { from { opacity: 0; transform: translate(-50%, 8px); } }
+.icons-progress-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.icons-progress-stop {
+  padding: 3px 10px;
+  border: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg) 20%, transparent);
+  color: var(--bg);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.icons-progress-stop[hidden] { display: none; }
+.icons-progress-stop:hover { background: color-mix(in srgb, var(--bg) 32%, transparent); }
+.icons-progress-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: color-mix(in srgb, var(--bg) 15%, transparent); }
+.icons-progress-bar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width 0.3s ease; }
 .bm-toast[hidden] { display: none; }
 .bm-toast span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .bm-toast button {

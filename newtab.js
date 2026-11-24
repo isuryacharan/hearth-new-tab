@@ -207,6 +207,8 @@ function sub(text) {
   return el;
 }
 
+/* Icons come from Chrome's own icon cache ("refresh icons" reloads it, see sw.js), else a coloured letter. */
+let iconVersion = 0; // bumped after a refresh, so this page doesn't reuse icons it already loaded
 function faviconEl(bm) {
   const box = document.createElement('div');
   box.className = 'icon';
@@ -222,7 +224,7 @@ function faviconEl(bm) {
     const img = document.createElement('img');
     img.alt = '';
     img.loading = 'lazy';
-    img.src = chrome.runtime.getURL(`/_favicon/?pageUrl=${encodeURIComponent(bm.url)}&size=64`);
+    img.src = chrome.runtime.getURL(`/_favicon/?pageUrl=${encodeURIComponent(bm.url)}&size=64${iconVersion ? `&v=${iconVersion}` : ''}`);
     img.addEventListener('error', () => { img.remove(); showLetter(); });
     box.append(img);
   } else {
@@ -230,6 +232,61 @@ function faviconEl(bm) {
   }
   return box;
 }
+
+/* ---------- "refresh icons": progress while sw.js reloads Chrome's icon cache ---------- */
+
+const iconProgress = (() => {
+  const el = document.createElement('div');
+  el.className = 'icons-progress';
+  el.setAttribute('role', 'status');
+  el.hidden = true;
+  el.innerHTML = '<span class="icons-progress-text"></span><button type="button" class="icons-progress-stop">Stop</button><span class="icons-progress-bar" aria-hidden="true"><i></i></span>';
+  document.body.append(el);
+  const text = el.querySelector('.icons-progress-text');
+  const stop = el.querySelector('.icons-progress-stop');
+  const bar = el.querySelector('.icons-progress-bar i');
+  let hideTimer = null;
+  stop.addEventListener('click', () => chrome.runtime.sendMessage({ type: 'icons-stop' }).catch(() => {}));
+
+  function show(s) {
+    clearTimeout(hideTimer);
+    el.hidden = false;
+    if (s.finished) {
+      text.textContent = s.error ? `Couldn’t refresh icons: ${s.error}`
+        : !s.total ? 'No bookmarked sites to refresh'
+        : s.stopped ? `Stopped · refreshed ${s.done} of ${s.total}` : `Icons refreshed for ${s.total} bookmark${s.total === 1 ? '' : 's'}`;
+      stop.hidden = true;
+      bar.style.width = '100%';
+      iconVersion = Date.now(); // draw the icons again, from the refreshed cache
+      render();
+      window.dispatchEvent(new Event('bookmarks-change'));
+      hideTimer = setTimeout(() => { el.hidden = true; }, s.error ? 9000 : 4000);
+    } else {
+      text.textContent = s.total ? `Refreshing icons · ${s.done} of ${s.total}` : 'Refreshing icons…';
+      stop.hidden = false;
+      bar.style.width = s.total ? `${(s.done / s.total) * 100}%` : '0%';
+    }
+  }
+
+  if (hasBookmarksApi && chrome.runtime?.onMessage) {
+    chrome.runtime.onMessage.addListener(msg => { if (msg?.type === 'icons-progress') show(msg); });
+    // a refresh started from another tab is already running
+    chrome.runtime.sendMessage({ type: 'icons-status' }).then(s => { if (s?.running) show(s); }).catch(() => {});
+  }
+
+  return {
+    start() {
+      if (!hasBookmarksApi) return 'Refreshing icons works in the extension only';
+      show({ done: 0, total: 0 });
+      // No answer means the service worker is an older copy: Chrome keeps it until the extension is reloaded.
+      const outdated = { finished: true, error: 'reload Hearth in chrome://extensions, then try again' };
+      chrome.runtime.sendMessage({ type: 'icons-refresh' })
+        .then(s => { if (!s?.started) show(outdated); else if (s.running) show(s); })
+        .catch(() => show(outdated));
+      return undefined;
+    },
+  };
+})();
 
 function hostOf(url) {
   try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return ''; }
@@ -301,6 +358,7 @@ window.BookmarkIndex = {
   links: () => allLinks,
   folders: () => allFolders,
   icon: bm => faviconEl(bm),
+  refreshIcons: () => iconProgress.start(),
   openFolder(id) {
     openFolder(id);
     Pages.go('bookmarks');

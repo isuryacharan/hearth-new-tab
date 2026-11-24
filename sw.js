@@ -6,6 +6,7 @@
  *   open. Tabs only write state; this worker keeps an alarm in step with it and is the only
  *   place a session is completed.
  * - adds "Add page / link to Read Later" to the right-click menu.
+ * - "refresh icons": reloads Chrome's icon cache for every bookmark.
  */
 importScripts('pomodoro-core.js');
 
@@ -126,5 +127,95 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
   } else if (info.menuItemId === 'read-later-link') {
     // a selected link text makes a good title; otherwise one is derived from the address
     saveForLater(info.linkUrl, info.selectionText);
+  }
+});
+
+/* ---------- "refresh icons": reload Chrome's icon cache for every bookmark ---------- */
+
+// Chrome only stores a site's icon when the page is loaded in a tab, and gives extensions no way to
+// ask for it directly. So each bookmark is opened in a minimized background window (muted, a few at
+// a time), left until it has loaded and its icon is stored, then closed. Runs here, not in the page,
+// so closing the new tab doesn't leave the window behind. Pages follow along with 'icons-progress'.
+const ICON_TABS = 4;        // pages loading at once
+const ICON_TIMEOUT = 20000; // give up on a page after this long
+const ICON_SETTLE = 1500;   // after a page loads, time for its icon to be fetched and stored
+
+let iconRun = null; // { done, total, windowId, stopped }
+const iconStatus = () => (iconRun ? { running: true, done: iconRun.done, total: iconRun.total } : { running: false });
+const tell = msg => chrome.runtime.sendMessage({ type: 'icons-progress', ...msg }).catch(() => {}); // no tab open: fine
+
+async function bookmarkUrls() {
+  const urls = new Set();
+  const walk = n => { if (n.url && /^https?:/i.test(n.url)) urls.add(n.url); (n.children || []).forEach(walk); };
+  (await chrome.bookmarks.getTree()).forEach(walk);
+  return [...urls];
+}
+
+/* Open `url` in the window, wait until it has loaded (or timed out), give its icon a moment, close it. */
+function visit(windowId, url) {
+  return new Promise(resolve => {
+    let tabId = null;
+    let settle = null;
+    const finish = () => {
+      clearTimeout(timeout);
+      clearTimeout(settle);
+      chrome.tabs.onUpdated.removeListener(onUpdated);
+      if (tabId !== null) chrome.tabs.remove(tabId).catch(() => {});
+      resolve();
+    };
+    const onUpdated = (id, change) => {
+      if (id === tabId && change.status === 'complete') { clearTimeout(settle); settle = setTimeout(finish, ICON_SETTLE); }
+    };
+    const timeout = setTimeout(finish, ICON_TIMEOUT);
+    chrome.tabs.onUpdated.addListener(onUpdated);
+    chrome.tabs.create({ windowId, url, active: false })
+      .then(tab => { tabId = tab.id; return chrome.tabs.update(tab.id, { muted: true }); })
+      .catch(finish); // the window was closed
+  });
+}
+
+async function refreshIcons() {
+  if (iconRun) return;
+  try {
+    await runIconRefresh();
+  } catch (err) {
+    if (iconRun) chrome.windows.remove(iconRun.windowId).catch(() => {});
+    iconRun = null;
+    tell({ running: false, finished: true, error: String(err?.message || err) });
+  }
+}
+
+async function runIconRefresh() {
+  const urls = await bookmarkUrls();
+  if (!urls.length) { tell({ running: false, done: 0, total: 0, finished: true }); return; }
+  const win = await chrome.windows.create({ url: 'about:blank', focused: false, state: 'minimized' });
+  const run = iconRun = { done: 0, total: urls.length, windowId: win.id, stopped: false };
+  tell(iconStatus());
+
+  const queue = [...urls];
+  await Promise.all(Array.from({ length: ICON_TABS }, async () => {
+    while (queue.length && !run.stopped) {
+      await visit(win.id, queue.shift());
+      if (run.stopped) break; // that page was cut short
+      run.done += 1;
+      tell(iconStatus());
+    }
+  }));
+
+  chrome.windows.remove(win.id).catch(() => {});
+  iconRun = null;
+  tell({ running: false, done: run.done, total: run.total, finished: true, stopped: run.stopped });
+}
+
+// Closing the window by hand stops the run.
+chrome.windows.onRemoved.addListener(id => { if (iconRun && iconRun.windowId === id) iconRun.stopped = true; });
+
+chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+  if (!msg) return;
+  if (msg.type === 'icons-refresh') { refreshIcons(); sendResponse({ started: true, ...iconStatus() }); }
+  else if (msg.type === 'icons-status') sendResponse(iconStatus());
+  else if (msg.type === 'icons-stop') {
+    if (iconRun) { iconRun.stopped = true; chrome.windows.remove(iconRun.windowId).catch(() => {}); }
+    sendResponse(true);
   }
 });

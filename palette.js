@@ -251,6 +251,9 @@
     },
     { keywords: ['bookmarks', 'grid', 'all bookmarks'], title: 'Show all bookmarks', icon: () => SVG.grid,
       run: () => { input.blur(); Pages.go('bookmarks'); } },
+    { keywords: ['refresh icons', 'icons', 'reload icons', 'refetch icons', 'favicons'], title: 'Refresh bookmark icons',
+      subtitle: 'Reloads Chrome’s icon cache by opening each bookmark in a background window', icon: () => SVG.globe,
+      run: () => { input.blur(); return BookmarkIndex.refreshIcons(); } }, // progress shows at the bottom
     { keywords: ['help', 'commands', '?'], title: 'Show all commands', icon: () => SVG.help, run: () => { setQuery('?'); return undefined; }, keepOpen: true },
   ];
 
@@ -501,7 +504,7 @@
         keepOpen: true,
       };
     }
-    return { section, icon: cmd.icon(), title: cmd.title, subtitle: cmd.keywords[0], action: 'Run', run: cmd.run, keepOpen: cmd.keepOpen };
+    return { section, icon: cmd.icon(), title: cmd.title, subtitle: cmd.subtitle ? `${cmd.keywords[0]} · ${cmd.subtitle}` : cmd.keywords[0], action: 'Run', run: cmd.run, keepOpen: cmd.keepOpen };
   }
 
   function build(raw) {
