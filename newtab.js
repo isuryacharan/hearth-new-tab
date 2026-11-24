@@ -128,7 +128,7 @@ function folderTile(folder) {
   tile.type = 'button';
   tile.className = 'tile';
   const count = (folder.children || []).length;
-  tile.title = `${folder.title || 'Untitled'} (${count})`;
+  tile.setAttribute('aria-label', `${folder.title || 'Untitled'}, ${count} item${count === 1 ? '' : 's'} (Space to peek inside)`); // hover shows a peek (peek.js), not a tooltip
   tile.addEventListener('click', () => openFolder(folder.id));
 
   const icon = document.createElement('div');

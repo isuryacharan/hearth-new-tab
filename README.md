@@ -40,6 +40,8 @@ Instant "Opening…" feedback means one Enter is always enough. [All commands �
 ### Bookmarks, quick links and read later
 - **Bookmark grid** with folders, breadcrumbs and site icons, on a second page below the clock (scroll, click
   "Bookmarks ⌄" or press `↓`). Updates live when your bookmarks change.
+- **Folder peek**: hover a folder (or focus it and press `Space`) to see what's inside and open any of it
+  without leaving where you are.
 - **Manage bookmarks right in the grid**: **+ Add** a bookmark or folder; use **⋯** (or right-click a tile) to
   edit, rename, move to another folder or delete (it asks first, then offers **Undo**); **drag tiles** to reorder them, drop one onto
   a folder to move it inside, or onto the folder path at the top to move it up. Changes go straight to Chrome's
@@ -158,6 +160,7 @@ sent automatically or just filled in is up to each site. Add or change engines i
 | `W` `P` `C` `T` `N` `B` | open Weather · Pomodoro · Calendar · To-do · Notes · Appearance (when not typing) |
 | `R` | jump to the read later list |
 | `Backspace` | up one bookmark folder |
+| `Space` (on a folder) | peek inside it; `↑` `↓` to move, `Esc` to close |
 | `Esc` | leave a text field; again to close the drawer |
 
 On the bookmarks page, focus a to-do's grip and press `↑` / `↓` to reorder it; in the calendar, arrow keys and
@@ -229,6 +232,7 @@ It should work in any Chromium browser with Manifest V3 support, but it's develo
 | `newtab.html`, `newtab.css` | the new tab page |
 | `newtab.js` | bookmark grid and folders |
 | `bookmarks-manage.js` | adding, editing, moving, deleting and dragging bookmarks |
+| `peek.js` | folder peek |
 | `pages.js` | the two pages and their spring transition |
 | `palette.js` | command palette |
 | `dock.js` | status chips and the drawer |
