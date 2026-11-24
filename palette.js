@@ -37,6 +37,7 @@
     folder: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8l-2-2z"/></svg>',
     grid: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h7v7H4zm9 0h7v7h-7zM4 13h7v7H4zm9 0h7v7h-7z"/></svg>',
     play: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>',
+    history: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 3a9 9 0 0 0-9 9H1l3.9 3.9L9 12H6a7 7 0 1 1 2.05 4.95l-1.42 1.42A9 9 0 1 0 13 3zm-1 5v5l4.25 2.52.77-1.28-3.52-2.09V8z"/></svg>',
     later: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z"/></svg>',
     quote: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 17h3l2-4V7H5v6h3zm8 0h3l2-4V7h-6v6h3z"/></svg>',
     help: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 17h-2v-2h2zm2.1-7.8-.9.9c-.7.7-1.2 1.3-1.2 2.9h-2v-.5c0-1.1.5-2.1 1.2-2.8l1.2-1.3a2 2 0 1 0-3.4-1.4H8a4 4 0 1 1 7.1 2.2z"/></svg>',
@@ -301,6 +302,174 @@
     };
   }
 
+  /* ---------- browsing history: "h google.c" ---------- */
+
+  /*
+   * Searches Chrome's history, ranked like the address bar (address starts with what you typed,
+   * then typed/visit counts, then recency), and autofills the address inline. Reading history
+   * needs the optional "history" permission: Hearth asks for it the first time you use "h".
+   */
+  const HISTORY_KEYWORDS = ['h', 'history'];
+  const isExtension = typeof chrome !== 'undefined' && !!chrome.permissions;
+  let historyGranted = isExtension ? null : true; // null = not checked yet
+  const historyCache = new Map(); // query → ranked results
+  let historyLast = [];           // most recent results, shown while the next query loads
+  let historyTimer = null;
+
+  // Outside the extension (layout preview) there's no history API: use a few sample entries.
+  const SAMPLE_HISTORY = [
+    { url: 'https://www.google.com/search?q=hearth+new+tab', title: 'hearth new tab - Google Search', visitCount: 3, typedCount: 0, lastVisitTime: Date.now() - 36e5 },
+    { url: 'https://www.google.com/', title: 'Google', visitCount: 240, typedCount: 60, lastVisitTime: Date.now() - 6e5 },
+    { url: 'https://github.com/isuryacharan/hearth-new-tab', title: 'GitHub - isuryacharan/hearth-new-tab', visitCount: 12, typedCount: 2, lastVisitTime: Date.now() - 2 * 864e5 },
+    { url: 'https://github.com/', title: 'GitHub', visitCount: 180, typedCount: 40, lastVisitTime: Date.now() - 3 * 36e5 },
+    { url: 'https://developer.mozilla.org/en-US/docs/Web/CSS/backdrop-filter', title: 'backdrop-filter - CSS | MDN', visitCount: 4, typedCount: 0, lastVisitTime: Date.now() - 5 * 864e5 },
+    { url: 'https://news.ycombinator.com/', title: 'Hacker News', visitCount: 90, typedCount: 25, lastVisitTime: Date.now() - 864e5 },
+  ];
+
+  async function checkHistoryPermission() {
+    if (!isExtension) return;
+    historyGranted = await chrome.permissions.contains({ permissions: ['history'] });
+  }
+  checkHistoryPermission();
+  if (isExtension && chrome.permissions.onAdded) {
+    const recheck = () => checkHistoryPermission().then(() => { historyCache.clear(); render(); });
+    chrome.permissions.onAdded.addListener(recheck);
+    chrome.permissions.onRemoved.addListener(recheck);
+  }
+
+  const bareUrl = url => url.replace(/^[a-z]+:\/\//i, '').replace(/^www\./i, '');
+
+  function rankHistory(entries, text) {
+    const t = text.toLowerCase();
+    return entries
+      .filter(h => /^https?:\/\//i.test(h.url || ''))
+      .map(h => {
+        const bare = bareUrl(h.url).toLowerCase();
+        const host = bare.split('/')[0];
+        let s = bare.startsWith(t) ? 1000 : host.includes(t) ? 400 : (h.title || '').toLowerCase().includes(t) ? 200 : bare.includes(t) ? 150 : 0;
+        if (!s) return null;
+        s += Math.min(h.typedCount || 0, 50) * 8 + Math.min(h.visitCount || 0, 200);
+        s += Math.max(0, 60 - (Date.now() - (h.lastVisitTime || 0)) / 864e5); // recent visits rank higher
+        if (!bare.includes('/') || /\/$/.test(bare) && bare.split('/').length === 2) s += 30; // home pages over deep links
+        return { h, s };
+      })
+      .filter(Boolean)
+      .sort((a, b) => b.s - a.s)
+      .map(x => x.h);
+  }
+
+  function fetchHistory(text) {
+    clearTimeout(historyTimer);
+    historyTimer = setTimeout(async () => {
+      let entries;
+      try {
+        entries = isExtension
+          ? await chrome.history.search({ text, maxResults: 200, startTime: 0 })
+          : SAMPLE_HISTORY.filter(h => (h.url + ' ' + h.title).toLowerCase().includes(text.toLowerCase()));
+      } catch { entries = []; }
+      const ranked = rankHistory(entries, text).slice(0, 8);
+      historyCache.set(text, ranked);
+      historyLast = ranked;
+      if (historyQuery() === text) { render(); autofill(); } // still what's typed: show it
+    }, 50);
+  }
+
+  /* What the user actually typed, without an inline completion that's selected after the caret. */
+  function typedValue() {
+    const v = input.value;
+    return input.selectionEnd === v.length && input.selectionStart < v.length ? v.slice(0, input.selectionStart) : v;
+  }
+  function historyQuery() {
+    const m = typedValue().trim().match(/^(\S+)\s+(.+)$/);
+    return m && HISTORY_KEYWORDS.includes(m[1].toLowerCase()) ? m[2].trim() : null;
+  }
+
+  /* The address to autofill for `typed`: the host ("google.c" → "google.com"), or more if a "/" was typed. */
+  function completionFor(typed, results) {
+    const t = typed.toLowerCase();
+    if (!t || /\s/.test(t)) return null;
+    for (const h of results) {
+      const bare = bareUrl(h.url);
+      if (!bare.toLowerCase().startsWith(t)) continue;
+      const target = t.includes('/') ? bare.replace(/[?#].*$/, '') : bare.split('/')[0];
+      if (target.length > typed.length) return { text: typed + target.slice(typed.length), url: t.includes('/') ? h.url.replace(/[?#].*$/, '') : new URL(h.url).origin + '/' };
+    }
+    return null;
+  }
+
+  let lastInputType = '';
+  /* Inline autofill, like the address bar: complete the address and select the added part. */
+  function autofill() {
+    if (lastInputType.startsWith('delete')) return; // never re-add what you just deleted
+    const v = input.value;
+    if (input.selectionStart !== v.length || input.selectionEnd !== v.length) return;
+    const m = v.match(/^(\S+\s+)(\S+)$/);
+    if (!m || !HISTORY_KEYWORDS.includes(m[1].trim().toLowerCase())) return;
+    const comp = completionFor(m[2], historyCache.get(m[2]) || []);
+    if (!comp) return;
+    input.value = m[1] + comp.text;
+    input.setSelectionRange(v.length, input.value.length);
+  }
+  const hasAutofill = () => input.selectionEnd === input.value.length && input.selectionStart < input.value.length && historyQuery() !== null;
+  function acceptAutofill() {
+    input.setSelectionRange(input.value.length, input.value.length);
+    lastInputType = 'insertText';
+    render();
+    autofill(); // the accepted address may itself extend further ("google.com" → "google.com/maps"): only when a "/" is typed
+  }
+
+  function historyItems(text) {
+    const section = 'History';
+    if (historyGranted === false) {
+      return [{
+        section, icon: SVG.history, title: 'Allow history search',
+        subtitle: 'Hearth asks Chrome once; your history never leaves your computer', action: 'Allow', keepOpen: true,
+        run: async () => {
+          const ok = await chrome.permissions.request({ permissions: ['history'] }).catch(() => false);
+          historyGranted = ok;
+          historyCache.clear();
+          render();
+          if (ok) fetchHistory(text || '');
+          return ok ? 'History search is on' : 'History search wasn’t allowed';
+        },
+      }];
+    }
+    if (historyGranted === null) return [];
+    if (!text) {
+      return [{ section, icon: SVG.history, title: 'Search your history…', subtitle: 'h <part of an address or title>, e.g. h google.c', action: 'Type', keepOpen: true, run: () => {} }];
+    }
+    let results = historyCache.get(text);
+    if (!results) {
+      fetchHistory(text);
+      results = rankHistory(historyLast, text); // what we already have, until the fresh results land
+    }
+    const out = [];
+    const comp = completionFor(text, results);
+    if (comp) {
+      out.push({ section, icon: SVG.globe, title: bareUrl(comp.url).replace(/\/$/, ''), subtitle: 'From your history', action: 'Open', url: comp.url });
+    }
+    for (const h of results) {
+      if (comp && h.url === comp.url) continue;
+      const bare = bareUrl(h.url);
+      out.push({
+        section, iconNode: window.BookmarkIndex?.icon({ url: h.url, title: h.title || bare }),
+        title: h.title || bare, subtitle: `${bare.split('/')[0]} · ${agoShort(h.lastVisitTime)}`, action: 'Open', url: h.url,
+      });
+    }
+    if (!out.length) out.push({ section, icon: SVG.search, title: `No history matches “${text}”`, subtitle: 'Enter searches the web instead', action: 'Search', search: text });
+    return out;
+  }
+
+  const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' });
+  function agoShort(ts) {
+    const s = (Date.now() - (ts || 0)) / 1000;
+    if (s < 60) return 'just now';
+    for (const [unit, size] of [['year', 31557600], ['month', 2629800], ['week', 604800], ['day', 86400], ['hour', 3600], ['minute', 60]]) {
+      if (s >= size) return rtf.format(-Math.floor(s / size), unit);
+    }
+    return '';
+  }
+
   /* ---------- building results ---------- */
 
   /* Both return a promise that rejects if Chrome refuses the navigation. */
@@ -342,12 +511,17 @@
       return [
         ...COMMANDS.filter(c => c.keywords[0] !== 'help').map(c => commandItem(c)),
         ...ENGINES.map(e => engineCompleteItem(e, 'Search engines & AI')),
+        { section: 'Search engines & AI', icon: SVG.history, title: 'Search history…', subtitle: 'h <text>, e.g. h google.c',
+          action: 'Complete', complete: 'h ', keepOpen: true, run: () => { setQuery('h '); } },
       ];
     }
 
     const out = [];
     const first = q.split(/\s+/)[0];
     const afterFirst = raw.trim().slice(first.length).trim();
+
+    // browsing history: "h google.c" — only history results (and the address autofills inline)
+    if (HISTORY_KEYWORDS.includes(first) && (afterFirst || /\s$/.test(raw))) return historyItems(afterFirst);
 
     // 0. a search engine / AI chat keyword: "yt lofi", "gpt explain closures"
     const engine = ENGINES.find(e => e.keywords.includes(first));
@@ -452,7 +626,7 @@
   /* ---------- rendering ---------- */
 
   function render() {
-    items = build(input.value);
+    items = build(typedValue()); // not the inline history completion, only what was typed
     active = Math.min(active, Math.max(0, items.length - 1));
     const rows = [];
     let section = null;
@@ -601,7 +775,12 @@
   input.setAttribute('aria-controls', 'palette-list');
   input.setAttribute('aria-expanded', 'false');
 
-  input.addEventListener('input', () => { active = 0; render(); });
+  input.addEventListener('input', e => {
+    lastInputType = e.inputType || '';
+    active = 0;
+    render();
+    autofill();
+  });
 
   input.addEventListener('keydown', e => {
     if (navigating) {
@@ -626,11 +805,22 @@
         runItem(items[active], { newTab: e.ctrlKey || e.metaKey });
         break;
       case 'Tab':
+        if (hasAutofill()) { e.preventDefault(); acceptAutofill(); break; } // take the history completion
         if (items[active]?.complete) { e.preventDefault(); setQuery(items[active].complete); }
+        break;
+      case 'ArrowRight':
+      case 'End':
+        if (hasAutofill()) { e.preventDefault(); acceptAutofill(); }
         break;
       case 'Escape':
         e.preventDefault();
         e.stopPropagation();
+        if (hasAutofill()) { // first Esc drops just the completion
+          input.value = typedValue();
+          lastInputType = 'deleteContent';
+          render();
+          break;
+        }
         if (input.value) setQuery('');
         else input.blur();
         break;

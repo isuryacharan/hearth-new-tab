@@ -30,7 +30,8 @@ It works with an image or **video wallpaper**, keeps all your data on your compu
 ## Features
 
 ### Command palette (search box)
-One box for everything: **search bookmarks**, open a **URL**, do **quick maths**, **search the web** with
+One box for everything: **search bookmarks**, **search your browsing history with address-bar-style autofill**
+(`h google.c`), open a **URL**, do **quick maths**, **search the web** with
 your default engine or a specific one (Google, DuckDuckGo, Bing, Brave, YouTube, Wikipedia, GitHub, Reddit,
 Stack Overflow, MDN, npm, Google Maps), or **ask ChatGPT or Claude** with your text as the prompt. It also runs
 commands — `todo buy milk`, `note …`, `event fri 2pm dentist`, `focus`, `weather` — without leaving the keyboard.
@@ -115,6 +116,7 @@ Type in the search box on the home page. `?` lists every command.
 | `position top left`, `position bottom`, … | moves the clock and search box (`position` alone opens the picker) |
 | `12*4.5`, `=2^10` | calculates; `Enter` copies the result |
 | `github.com`, `localhost:3000` | opens the address |
+| `h google.c` (or `history …`) | searches your browsing history and **autofills the address** like Chrome's address bar (`Tab` / `→` accepts, `Backspace` / `Esc` drops it) |
 | `yt lofi beats`, `g …`, `ddg …` | searches a specific engine (keywords below) |
 | `gpt explain closures`, `claude …` | opens ChatGPT / Claude with your text as the prompt |
 | anything else | matching bookmarks, folders, quick links and saved pages, then web search, Ask ChatGPT, Ask Claude |
@@ -177,6 +179,7 @@ Hearth only contacts these services, and only for the feature you use:
 | `search` | search with *your* default search engine |
 | `alarms`, `notifications` | end pomodoro sessions on time and tell you |
 | `contextMenus`, `activeTab` | the right-click *Add to Read Later*; the page title is read only when you click it |
+| `history` *(optional)* | only if you use `h …` history search: Hearth asks the first time, and it's never requested otherwise. History is read locally and never sent anywhere |
 
 No location permission is requested. When you add Hearth, Chrome asks you to confirm the parts that affect you:
 replacing the new tab page, reading and changing your bookmarks, and showing notifications.
